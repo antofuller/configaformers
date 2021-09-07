@@ -132,137 +132,143 @@ class VanillaFFN(nn.Module):
     def __init__(self,
                  dim,
                  ff_mult=4,
-                 dropout=0.0):
-        super().__init__()
+                 dropout=0.0,
+                 pre_norm_bool=True,
+                 post_norm_bool=False,
+                 ):
         """
         This is the "vanilla", or standard FFN used in transformer blocks. We use a GELU activation function because
         that is most common, and the exact choice of activation function should not matter that much. Please see
         https://arxiv.org/abs/2102.11972 - page 8.
-        :param dim: number of features feed into the FFN
-        :param ff_mult: the value to multiply dim by, to get the inner dimension
-        """
 
+        :param dim: Input and output dimension size
+        :param ff_mult: Hidden layer dimension size multiplier
+        :param dropout: Features to dropout (between 0 and 1)
+        :param pre_norm_bool: Apply layer normalization before the FFN
+        :param post_norm_bool: Apply layer normalization after the FFN
+        """
+        super().__init__()
+
+        # config
         inner_dim = int(dim * ff_mult)
-        self.input_norm = nn.LayerNorm(dim)
+        self.pre_norm_bool = pre_norm_bool
+        self.post_norm_bool = post_norm_bool
+
+        # functions
+        if self.pre_norm_bool:
+            self.pre_norm = nn.LayerNorm(dim)
+
+        if self.post_norm_bool:
+            self.post_norm = nn.LayerNorm(dim)
 
         self.net = nn.Sequential(
             nn.Linear(dim, inner_dim),  # project to more features
             nn.GELU(),  # activation function
-            nn.Dropout(dropout),
+            nn.Dropout(dropout),  # set some features to 0
             nn.Linear(inner_dim, dim)  # project back down
         )
 
     def forward(self, x):
         residual = x  # store input
-        x = self.input_norm(x)  # normalize the representations before the FFN
+
+        if self.pre_norm_bool:
+            x = self.pre_norm(x)  # normalize the representations before the FFN
 
         x = self.net(x)  # send through FFN
-        return x + residual  # add the layer's input to create a residual/skip connection
+        x = x + residual  # add the layer's input to create a residual/skip connection
+
+        if self.post_norm_bool:
+            x = self.post_norm(x)  # normalize the representations after the residual
+
+        return x
 
 
-class GegluFFN(nn.Module):
+class GLUVariantFFN(nn.Module):
     def __init__(self,
                  dim,
-                 ff_mult=2,
-                 dropout=0.0):
+                 ff_mult,
+                 num_projections=2,
+                 num_gelu=1,
+                 dropout=0.0,
+                 pre_norm_bool=True,
+                 post_norm_bool=False,
+                 ):
+        """
+        Gated Linear Unit (GLU) variants for feedforward networks. See: https://arxiv.org/abs/2002.05202
+
+        Examples:
+        GEGLU ---> default config
+        Bilinear ---> num_gelu=0, remainder are default
+        Trilinear ---> num_projections=3, num_gelu=0, remainder are default
+
+        *WARNING*: Increasing num_projections will increase the parameter count of your model. To match the param count
+        of a VanillaFFN with ff_mult=4, use ff_mult=2.667 if num_projections=2, ff_mult=2 if num_projections=3, or
+        ff_mult=1.6 if num_projections=4
+
+        :param dim: Input and output dimension size
+        :param ff_mult: Hidden layer dimension size multiplier
+        :param num_projections: Number of input projections which are multiplied by each other, element-wise
+        :param num_gelu: Number of projections to send through a GELU
+        :param dropout: Features to dropout (between 0 and 1)
+        :param pre_norm_bool: Apply layer normalization before the FFN
+        :param post_norm_bool: Apply layer normalization after the FFN
+        """
         super().__init__()
-        """
-        When used in an FFN, GEGLU replaces the first linear layer. This implementation of GEGLU first sends the input
-        through a linear layer with twice the output size of the standard linear layer in an FFN. It then splits this
-        output into two equal chunks. These chunks will now each have the size of dim_out. One of the chunks (named gate)
-        will be sent through a GELU non-linearity, and then multiplied (element wise) by the other chunk that was not
-        sent through the non-linearity. The "GLU" in GEGLU stands for "gated linear unit", since it acts as a gate that
-        decides how much of each feature to "let through". The "GE" prefix refers to the type of non-linearity used, in
-        this case a GELU.
-        :param dim: number of features feed into the FFN
-        :param ff_mult: the value to multiply dim by, to get the inner dimension
-        """
 
-        inner_dim = int(dim * ff_mult)
-        self.input_norm = nn.LayerNorm(dim)
+        # config
+        inner_dim = int(ff_mult*dim)
+        assert 4 >= num_projections >= 2, "num_projections must be 2, 3, or 4"
+        assert num_projections >= num_gelu >= 0, "num_gelu must be >= 0, and <= num_projections"
+        assert inner_dim % num_projections == 0, "num_projections must divide evenly into inner_dim"
 
-        self.proj_up = nn.Linear(dim, inner_dim * 2)
-        self.drop_fn = nn.Dropout(dropout)
+        self.dim = dim
+        self.num_projections = num_projections
+        self.num_gelu = num_gelu
+        self.pre_norm_bool = pre_norm_bool
+        self.post_norm_bool = post_norm_bool
+
+        # functions
+        if self.pre_norm_bool:
+            self.pre_norm = nn.LayerNorm(dim)
+
+        if self.post_norm_bool:
+            self.post_norm = nn.LayerNorm(dim)
+
+        self.proj_up = nn.Linear(dim, inner_dim * num_projections)
+        self.dropout = nn.Dropout(dropout)
         self.proj_down = nn.Linear(inner_dim, dim)
 
     def forward(self, x):
         residual = x  # store input
-        x = self.input_norm(x)  # normalize the representations before the FFN
 
-        x1, x2 = self.proj_up(x).chunk(2, dim=-1)  # project up, then split into 2 equal chunks
-        x = self.drop_fn(x1 * F.gelu(x2))  # send 1 chunk through GELU, multiply it with the other chunk, element-wise
+        if self.pre_norm_bool:
+            x = self.pre_norm(x)  # normalize the representations before the FFN
+
+        # linearly project up to inner_dim * num_projections features, then split into chunks of equal shape
+        chunks = self.proj_up(x).chunk(self.num_projections, dim=-1)
+
+        # apply GELU(s) to the required number of chunks
+        if self.num_gelu > 0:
+            chunks = [chunk if _idx >= self.num_gelu else F.gelu(chunk) for _idx, chunk in enumerate(chunks)]
+
+        # multiply the chunks by each other, element-wise
+        if self.num_projections == 2:
+            x = chunks[0] * chunks[1]
+        elif self.num_projections == 3:
+            x = chunks[0] * chunks[1] * chunks[2]
+        elif self.num_projections == 4:
+            x = chunks[0] * chunks[1] * chunks[2] * chunks[3]
+        else:
+            raise "self.num_projections out of range, inside of forward pass"
+
+        x = self.dropout(x)
         x = self.proj_down(x)  # project back down
+        x = x + residual  # add the layer's input to create a residual/skip connection
 
-        return x + residual  # add the layer's input to create a residual/skip connection
+        if self.post_norm_bool:
+            x = self.post_norm(x)  # normalize the representations after the residual
 
-
-class BilinearFFN(nn.Module):
-    def __init__(self,
-                 dim,
-                 ff_mult=2,
-                 dropout=0.0):
-        super().__init__()
-        """
-        When used in an FFN, this replaces the first linear layer. It first sends the input through a linear layer
-        with twice the output size of the standard linear layer in an FFN. It then splits this output into two equal
-        chunks. These chunks will now each have the size of dim_out. Finally, the two chunks are multiplied by each
-        other, element-wise. According to https://arxiv.org/abs/2002.05202 , this technique is competitive with GEGLU,
-        but crucially, it omits the non-linearity. There is no explicit activation function! Initial testing suggests
-        using Bilinear over GELU reduces time/step by 2-5% and GPU usage by around 0-2% (for the same number of total
-        parameters).
-        :param dim: number of features feed into the FFN
-        :param ff_mult: the value to multiply dim by, to get the inner dimension
-        """
-
-        inner_dim = int(dim * ff_mult)
-        self.input_norm = nn.LayerNorm(dim)
-
-        self.proj_up = nn.Linear(dim, inner_dim * 2)
-        self.drop_fn = nn.Dropout(dropout)
-        self.proj_down = nn.Linear(inner_dim, dim)
-
-    def forward(self, x):
-        residual = x  # store input
-        x = self.input_norm(x)  # normalize the representations before the FFN
-
-        x1, x2 = self.proj_up(x).chunk(2, dim=-1)  # project up, then split into 2 equal chunks
-        x = self.drop_fn(x1 * x2)  # multiply these 2 chunks together, element-wise
-        x = self.proj_down(x)  # project back down
-
-        return x + residual  # add the layer's input to create a residual/skip connection
-
-
-class TrilinearFFN(nn.Module):
-    def __init__(self,
-                 dim,
-                 ff_mult=2,
-                 dropout=0.0):
-        super().__init__()
-        """
-        This FFN variant is very similar to BilinearFFN, except it linearly projects the input three times, instead
-        of twice. I have not seen this published anywhere yet. In my initial testing it delivers identical loss values
-        as BilinearFFN, but it is slightly faster for an equal number of parameters (likely due to the shapes being more
-        GPU friendly).
-        :param dim: number of features feed into the FFN
-        :param ff_mult: the value to multiply dim by, to get the inner dimension
-        """
-
-        inner_dim = int(dim * ff_mult)
-        self.input_norm = nn.LayerNorm(dim)
-
-        self.proj_up = nn.Linear(dim, inner_dim * 3)
-        self.drop_fn = nn.Dropout(dropout)
-        self.proj_down = nn.Linear(inner_dim, dim)
-
-    def forward(self, x):
-        residual = x  # store input
-        x = self.input_norm(x)  # normalize the representations before the FFN
-
-        x1, x2, x3 = self.proj_up(x).chunk(3, dim=-1)  # project up, then split into 3 equal chunks
-        x = self.drop_fn(x1 * x2 * x3)  # multiply these 3 chunks together, element-wise
-        x = self.proj_down(x)  # project back down
-
-        return x + residual  # add the layer's input to create a residual/skip connection
+        return x
 
 
 """
