@@ -30,22 +30,16 @@ Without FFNs, transformers don't work well: https://arxiv.org/abs/2103.03404
 
 class FFN(nn.Module):
     def __init__(self,
-                 dim,
-                 ff_mult=4,
-                 dropout=0.0,
-                 pre_norm_bool=True,
-                 post_norm_bool=False,
+                 dim,  # Input and output dimension size
+                 ff_mult=4,  # Hidden layer dimension size multiplier
+                 dropout=0.0,  # Features to dropout (between 0 and 1)
+                 pre_norm_bool=True,  # Apply layer normalization before the FFN
+                 post_norm_bool=False,  # Apply layer normalization after the FFN
                  ):
         """
         This is the "vanilla", or standard FFN used in transformer blocks. We use a GELU activation function because
         that is most common, and the exact choice of activation function should not matter that much. Please see
         https://arxiv.org/abs/2102.11972 - page 8.
-
-        :param dim: Input and output dimension size
-        :param ff_mult: Hidden layer dimension size multiplier
-        :param dropout: Features to dropout (between 0 and 1)
-        :param pre_norm_bool: Apply layer normalization before the FFN
-        :param post_norm_bool: Apply layer normalization after the FFN
         """
         super().__init__()
 
@@ -85,13 +79,13 @@ class FFN(nn.Module):
 
 class GLUVariantFFN(nn.Module):
     def __init__(self,
-                 dim,
-                 ff_mult,
-                 num_projections=2,
-                 num_gelu=1,
-                 dropout=0.0,
-                 pre_norm_bool=True,
-                 post_norm_bool=False,
+                 dim,  # Input and output dimension size (typically it is d_model)
+                 ff_mult,  # Hidden layer dimension size multiplier
+                 num_projections=2,  # Number of input projections which are multiplied by each other, element-wise
+                 num_gelu=1,  # Number of projections to send through a GELU
+                 dropout=0.0,  # Features to dropout (between 0 and 1)
+                 pre_norm_bool=True,  # Apply layer normalization before the FFN
+                 post_norm_bool=False,  # Apply layer normalization after the FFN
                  ):
         """
         Gated Linear Unit (GLU) variants for feedforward networks. See: https://arxiv.org/abs/2002.05202
@@ -104,14 +98,6 @@ class GLUVariantFFN(nn.Module):
         *WARNING*: Increasing num_projections will increase the parameter count of your model. To match the param count
         of a VanillaFFN with ff_mult=4, use ff_mult=2.667 if num_projections=2, ff_mult=2 if num_projections=3, or
         ff_mult=1.6 if num_projections=4
-
-        :param dim: Input and output dimension size (typically it is d_model)
-        :param ff_mult: Hidden layer dimension size multiplier
-        :param num_projections: Number of input projections which are multiplied by each other, element-wise
-        :param num_gelu: Number of projections to send through a GELU
-        :param dropout: Features to dropout (between 0 and 1)
-        :param pre_norm_bool: Apply layer normalization before the FFN
-        :param post_norm_bool: Apply layer normalization after the FFN
         """
         super().__init__()
 
@@ -187,25 +173,18 @@ working with very long sequences (i.e. in the thousands of tokens) - stick with 
 
 class Attention(nn.Module):
     def __init__(self,
-                 dim,
-                 attn_dim,
-                 num_heads,
-                 previous_attention_bool=False,
-                 pre_norm_bool=True,
-                 post_norm_bool=False,
+                 dim,  # Input and output dimension size (typically it is d_model)
+                 attn_dim,  # Dimension size of attention (typically it is equal to dim)
+                 num_heads,  # Number of attention heads
+                 previous_attention_bool=False,  # Whether or not to re-use the last attention map
+                 pre_norm_bool=True,  # Apply layer normalization before attention
+                 post_norm_bool=False,  # Apply layer normalization after attention
                  ):
         """
         Standard attention function, with a few features. Lazy attention (set previous_attention_bool=True) allows us
         to skip calculating a new attention map, and re-use the last attention map: https://arxiv.org/abs/2102.12702 .
         When not using lazy attention, we can use residual attention (https://arxiv.org/abs/2012.11747) by giving this
         module previous_attn_dots, which are the dots from the last attention layer.
-
-        :param dim: Input and output dimension size (typically it is d_model)
-        :param attn_dim: Dimension size of attention (typically it is equal to dim)
-        :param num_heads: Number of attention heads
-        :param previous_attention_bool: Whether or not to re-use the last attention map
-        :param pre_norm_bool: Apply layer normalization before attention
-        :param post_norm_bool: Apply layer normalization after attention
         """
         super().__init__()
 
