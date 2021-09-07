@@ -13,6 +13,11 @@ def max_neg_value(tensor):
     return -torch.finfo(tensor.dtype).max
 
 
+"""
+Positional utils
+"""
+
+
 class Alibi(nn.Module):
     def __init__(self, heads, max_length):
         super().__init__()
@@ -23,8 +28,7 @@ class Alibi(nn.Module):
         version will be added shortly; it's actually just the lower triangle portion.
 
         From the paper, Alibi seems to perform on par with RoPE, but it can generalize to longer sequences not seen
-        during training. RoPE cannot do that. EleutherAI discord experiments/rumors claim that using Alibi and RoPE
-        slightly improves performance; my experiments would agree. 
+        during training. RoPE cannot do that. 
         """
 
         self.heads = heads
@@ -113,3 +117,41 @@ def apply_rotary_pos_emb(t, freqs):
     seq_len = t.shape[-2]
     freqs = freqs[:, :, -seq_len:]
     return (t * freqs.cos()) + (rotate_half(t) * freqs.sin())
+
+
+"""
+Masking utils
+"""
+
+
+# class AttentionMask(nn.Module):
+#     def __init__(self,
+#                  max_length,
+#                  mask_type,
+#                  ):
+#
+#         super().__init__()
+#
+#         all_mask_types = ["decoder"]
+#
+#         assert mask_type in all_mask_types, f"mask_type must be one of {all_mask_types}"
+#
+#         self.mask_type = mask_type
+#
+#         if self.mask_type == "decoder":
+#             # Create a causal mask with zeros in the lower triangle, and negative infinity in the upper triangle
+#             self.mask_base = torch.ones(max_length, max_length).triu(diagonal=1)
+#             dummy_tensor = torch.Tensor([1.0])
+#             mask_value = max_neg_value(dummy_tensor)
+#             self.mask_base = self.mask_base * mask_value
+#
+#
+#
+#
+#     def forward(self, qk_dots):
+#         b, h, i, j = qk_dots.shape
+#
+#         bias = repeat(self.bias, 'h i j -> b h i j', b=b)  # repeat over the batch dimension
+#         bias = bias[:, :, :i, :j].view(qk_dots.shape)  # trim the bias tensor such that it matches the shape of qk_dots
+#
+#         return qk_dots + bias  # this adds them together, creating the relative positional bias

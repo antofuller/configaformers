@@ -219,12 +219,13 @@ class Attention(nn.Module):
         self.to_out = nn.Linear(attn_dim, dim)
 
     def forward(self,
-                x,
-                context=None,
-                positional_bias_fn=None,
-                previous_attn_map=None,
-                previous_attn_dots=None,
-                rotary_pos_emb=None,
+                x,  # The source of queries and keys/values if there is no context
+                context=None,  # The source of keys/values, aka memory
+                mask=None,
+                positional_bias_fn=None,  # Positional bias which is added to dots
+                previous_attn_map=None,  # The attention map (after softmax) from the last attention calculation
+                previous_attn_dots=None,  # The attention dots (before softmax) from the last attention calculation
+                rotary_pos_emb=None,  # RoPE embeddings
                 ):
 
         residual = x  # Store input
@@ -239,7 +240,7 @@ class Attention(nn.Module):
                 v_input = x  # Used for self-attention
 
             v = self.to_v(v_input)  # Create values via a linear projection
-            attn_map = previous_attn_map  # Set the current attention map to the last map
+            attn_map = previous_attn_map  # Set the current attention map to the last map (includes last mask)
             dots = None  # We did not calculate any attention dots
 
         elif not self.use_previous_attention:  # Calculate attention map from queries and keys
@@ -283,6 +284,19 @@ class Attention(nn.Module):
 
             if exists(positional_bias_fn):
                 dots = positional_bias_fn(dots)  # Apply a positional bias to the attention map
+
+            # if exists(mask):
+            #     dots = dots + mask  # Add negative infinity to masked positions, and 0 elsewhere
+            # Use Lucid's masking implementation for now
+            # Set to causal for testing
+
+            mask_value = max_neg_value(dots)
+            i, j = dots.shape[-2:]
+            r = torch.arange(i)
+            mask = rearrange(r, 'i -> () () i ()') < rearrange(r, 'j -> () () () j')
+
+            mask = F.pad(mask, (j - i, 0), value=False)
+            dots.masked_fill_(mask, mask_value)
 
             attn_map = self.attn_fn(dots, dim=-1)  # Take the softmax over the length of the sequence (keys/values)
 
