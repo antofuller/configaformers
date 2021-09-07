@@ -243,7 +243,7 @@ class Attention(nn.Module):
             attn_map = previous_attn_map  # Set the current attention map to the last map (includes last mask)
             dots = None  # We did not calculate any attention dots
 
-        elif not self.use_previous_attention:  # Calculate attention map from queries and keys
+        elif not self.previous_attention_bool:  # Calculate attention map from queries and keys
             if exists(context):
                 # For cross-attention, the layer's input are queries, and the keys/values come from the context
                 q_input = x
