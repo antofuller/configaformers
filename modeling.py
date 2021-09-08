@@ -1,10 +1,17 @@
 import torch.nn as nn
 from building_blocks import FFN, Attention
 from positional_and_masking_utils import RotaryEmbedding
+import torch
+from einops import rearrange, repeat, reduce
+
 
 """
 *** Basic implementation to test building blocks ***
 """
+
+
+def max_neg_value(tensor):
+    return -torch.finfo(tensor.dtype).max
 
 
 class Transformer(nn.Module):
@@ -36,14 +43,23 @@ class Transformer(nn.Module):
         self.logits_input_norm = nn.LayerNorm(dim)
         self.to_logits = nn.Linear(self.dim, self.vocab_size)
 
+        self.mask_base = torch.ones(512, 512).triu(diagonal=1)
+        dummy_tensor = torch.Tensor([1.0])
+        mask_value = max_neg_value(dummy_tensor)
+        self.mask_base = (self.mask_base * mask_value).cuda()
+        print(self.mask_base)
+
     def forward(self, seq_ids):
         bsz = seq_ids.shape[0]
         seq_len = seq_ids.shape[1]
         x = self.token_emb(seq_ids).view(bsz, seq_len, self.dim)
         rotary_pos_emb = self.rotary_pos_emb(seq_len)
 
+        mask = self.mask_base[seq_len, :seq_len]
+        mask = repeat(mask, 'i j -> b h i j', b=bsz, h=self.heads)
+
         for self_attn, self_ff in self.layers:
-            x = self_attn(x=x, rotary_pos_emb=rotary_pos_emb)
+            x, _, _ = self_attn(x=x, mask=mask, rotary_pos_emb=rotary_pos_emb)
             x = self_ff(x=x)
 
         x = self.logits_input_norm(x)

@@ -229,6 +229,7 @@ class Attention(nn.Module):
                 ):
 
         residual = x  # Store input
+        # device = x.device
 
         if self.pre_norm_bool:
             x = self.pre_norm(x)  # Normalize the representations before attention
@@ -285,18 +286,19 @@ class Attention(nn.Module):
             if exists(positional_bias_fn):
                 dots = positional_bias_fn(dots)  # Apply a positional bias to the attention map
 
-            # if exists(mask):
-            #     dots = dots + mask  # Add negative infinity to masked positions, and 0 elsewhere
+            if exists(mask):
+                dots = dots + mask  # Add negative infinity to masked positions, and 0 elsewhere
+
             # Use Lucid's masking implementation for now
             # Set to causal for testing
 
-            mask_value = max_neg_value(dots)
-            i, j = dots.shape[-2:]
-            r = torch.arange(i)
-            mask = rearrange(r, 'i -> () () i ()') < rearrange(r, 'j -> () () () j')
-
-            mask = F.pad(mask, (j - i, 0), value=False)
-            dots.masked_fill_(mask, mask_value)
+            # mask_value = max_neg_value(dots)
+            # i, j = dots.shape[-2:]
+            # r = torch.arange(i, device=device)
+            # mask = rearrange(r, 'i -> () () i ()') < rearrange(r, 'j -> () () () j')
+            #
+            # mask = F.pad(mask, (j - i, 0), value=False)
+            # dots.masked_fill_(mask, mask_value)
 
             attn_map = self.attn_fn(dots, dim=-1)  # Take the softmax over the length of the sequence (keys/values)
 
