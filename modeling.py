@@ -55,7 +55,7 @@ class Transformer(nn.Module):
         x = self.token_emb(seq_ids).view(bsz, seq_len, self.dim)
         rotary_pos_emb = self.rotary_pos_emb(seq_len)
 
-        mask = self.mask_base[seq_len, :seq_len]
+        mask = self.mask_base[:seq_len, :seq_len]
         mask = repeat(mask, 'i j -> b h i j', b=bsz, h=self.heads)
 
         for self_attn, self_ff in self.layers:

@@ -179,6 +179,7 @@ class Attention(nn.Module):
                  previous_attention_bool=False,  # Whether or not to re-use the last attention map
                  pre_norm_bool=True,  # Apply layer normalization before attention
                  post_norm_bool=False,  # Apply layer normalization after attention
+                 causal_mask_bool=True,  # Apply a causal mask (used for auto-regressive models)
                  ):
         """
         Standard attention function, with a few features. Lazy attention (set previous_attention_bool=True) allows us
@@ -197,6 +198,7 @@ class Attention(nn.Module):
         self.previous_attention_bool = previous_attention_bool
         self.pre_norm_bool = pre_norm_bool
         self.post_norm_bool = post_norm_bool
+        self.causal_mask_bool = causal_mask_bool
 
         # Functions
         if self.previous_attention_bool:
@@ -229,7 +231,6 @@ class Attention(nn.Module):
                 ):
 
         residual = x  # Store input
-        # device = x.device
 
         if self.pre_norm_bool:
             x = self.pre_norm(x)  # Normalize the representations before attention
@@ -280,8 +281,7 @@ class Attention(nn.Module):
             dots = einsum('b h i d, b h j d -> b h i j', q, k) * self.scale
 
             if exists(previous_attn_dots):
-                # Add attention dots residual connection
-                dots = dots + previous_attn_dots
+                dots = dots + previous_attn_dots  # Add attention dots residual connection
 
             if exists(positional_bias_fn):
                 dots = positional_bias_fn(dots)  # Apply a positional bias to the attention map
@@ -289,16 +289,23 @@ class Attention(nn.Module):
             if exists(mask):
                 dots = dots + mask  # Add negative infinity to masked positions, and 0 elsewhere
 
-            # Use Lucid's masking implementation for now
-            # Set to causal for testing
+            if self.causal_mask_bool:
+                # This is Lucid's implementation
+                # Creating the mask at model initialization is faster (0.2 - 0.5% in my experiments) but I haven't
+                # found a way to keep the flexibility of this method, with respect to device and dtype
 
-            # mask_value = max_neg_value(dots)
-            # i, j = dots.shape[-2:]
-            # r = torch.arange(i, device=device)
-            # mask = rearrange(r, 'i -> () () i ()') < rearrange(r, 'j -> () () () j')
-            #
-            # mask = F.pad(mask, (j - i, 0), value=False)
-            # dots.masked_fill_(mask, mask_value)
+                mask_value = max_neg_value(dots)  # the maximum negative number PyTorch allows, for this dtype
+                i, j = dots.shape[-2:]  # since the dots have shape (batch_size, num_heads, q_length, kv_length)
+                r = torch.arange(i, device=dots.device)  # count up to the number of queries
+                mask = rearrange(r, 'i -> () () i ()') < rearrange(r, 'j -> () () () j')  # creates a matrix that is
+                # true iff the row number is less than the column number (so it's true in the upper triangle)
+
+                if i != j:
+                    # This is only required when the query length is not equal to the key/value length, for example,
+                    # when we are generating using a key/value cache (and the query length is 1)
+                    mask = F.pad(mask, (j - i, 0), value=False)  # pad j - i columns to the left of the mask with false
+
+                dots.masked_fill_(mask, mask_value)  # replace the dots value with negative inf, where mask is true
 
             attn_map = self.attn_fn(dots, dim=-1)  # Take the softmax over the length of the sequence (keys/values)
 
