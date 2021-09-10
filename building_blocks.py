@@ -260,7 +260,7 @@ class NewAttention(nn.Module):
 
     @typechecked
     def _weighted_sum(self,
-                      _v: TensorType["batch", "num_heads", "length_keys", "head_dim"],
+                      _v: TensorType["batch", "length_keys", "dim"],
                       _attn_map: TensorType["batch", "num_heads", "length_queries", "length_keys"],
                       _rope: Optional[TensorType[1, 1, "max_length", "rope_dim"]],
                       ) \
