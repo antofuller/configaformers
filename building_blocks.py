@@ -230,8 +230,8 @@ class NewAttention(nn.Module):
 
     @typechecked
     def _calculate_attention_map(self,
-                                 _q: TensorType["batch", "num_heads", "length_queries", "head_dim"],
-                                 _k: TensorType["batch", "num_heads", "length_keys", "head_dim"],
+                                 _q: TensorType["batch", "length_queries", "dim"],
+                                 _k: TensorType["batch", "length_keys", "dim"],
                                  _rope: Optional[TensorType[1, 1, "max_length", "rope_dim"]],
                                  ) \
             -> TensorType["batch", "num_heads", "length_queries", "length_keys"]:
