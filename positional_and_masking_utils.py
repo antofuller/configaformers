@@ -121,7 +121,7 @@ def rotate_half(x: TensorType["batch", "num_heads", "length", "dim"]) \
 
 @typechecked
 def apply_rotary_pos_emb(x: TensorType["batch", "num_heads", "length", "dim"],
-                         frequencies: TensorType[1, 1, "max_length", "dim"]) \
+                         frequencies: TensorType[1, 1, "max_length", "rope_dim"]) \
         -> TensorType["batch", "num_heads", "length", "dim"]:
 
     num_features = frequencies.shape[-1]  # The number of features we wish to rotate
