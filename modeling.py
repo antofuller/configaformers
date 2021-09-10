@@ -1,5 +1,5 @@
 import torch.nn as nn
-from building_blocks import FFN, Attention
+from building_blocks import FFN, NewAttention
 from positional_and_masking_utils import RotaryEmbedding
 import torch
 from einops import rearrange, repeat, reduce
@@ -21,10 +21,10 @@ class Transformer(nn.Module):
 
         for _ in range(depth):
             self.layers.append(nn.ModuleList([
-                Attention(dim=dim,
-                          attn_dim=dim,
-                          num_heads=heads,
-                          ),
+                NewAttention(dim=dim,
+                             attn_dim=dim,
+                             num_heads=heads,
+                             ),
                 FFN(dim,
                     ),
             ]))

@@ -6,7 +6,7 @@ from positional_and_masking_utils import apply_rotary_pos_emb
 import math
 from torchtyping import TensorType, patch_typeguard
 from typeguard import typechecked
-from typing import Optional
+from typing import Optional, Tuple
 
 
 def exists(val):
@@ -281,15 +281,44 @@ class NewAttention(nn.Module):
         return _v
 
     @typechecked
+    def _apply_causal_mask(self,
+                           _dots: TensorType["batch", "num_heads", "length_queries", "length_keys"],
+                           ) \
+            -> TensorType["batch", "num_heads", "length_queries", "length_keys"]:
+
+        # This is Lucid's implementation
+        # Creating the mask at model initialization is faster (0.2 - 0.5% in my experiments) but I haven't
+        # found a way to keep the flexibility of this method, with respect to device and dtype
+
+        mask_value = max_neg_value(_dots)  # the maximum negative number PyTorch allows, for this dtype
+        i, j = _dots.shape[-2:]  # since the dots have shape (batch_size, num_heads, q_length, kv_length)
+        r = torch.arange(i, device=_dots.device)  # count up to the number of queries
+        mask = rearrange(r, 'i -> () () i ()') < rearrange(r, 'j -> () () () j')  # creates a matrix that is
+        # true iff the row number is less than the column number (so it's true in the upper triangle)
+
+        if i != j:
+            # This is only required when the query length is not equal to the key/value length, for example,
+            # when we are generating using a key/value cache (and the query length is 1)
+            mask = F.pad(mask, (j - i, 0), value=False)  # pad j - i columns to the left of the mask with false
+
+        _dots.masked_fill_(mask, mask_value)  # replace the dots value with negative inf, where mask is true
+
+        return _dots
+
+    @typechecked
     def forward(self,
                 x: TensorType["batch", "length_queries", "dim"],  # Layer input
                 context: Optional[TensorType["batch", "length_keys", "dim"]] = None,  # Keys/values or memory
-                mask=None,
                 positional_bias_fn=None,  # Positional bias which is added to dots
-                previous_attn_map=None,  # The attention map (after softmax) from the last attention calculation
-                previous_attn_dots=None,  # The attention dots (before softmax) from the last attention calculation
-                rotary_pos_emb=None,  # RoPE embeddings
-                ):
+                previous_attn_map: Optional[TensorType["batch", "num_heads", "length_queries", "length_keys"]] = None,
+                previous_attn_dots: Optional[TensorType["batch", "num_heads", "length_queries", "length_keys"]] = None,
+                rotary_pos_emb: Optional[TensorType[1, 1, "max_length", "rope_dim"]] = None,  # RoPE embeddings
+                ) \
+            -> Tuple[
+                TensorType["batch", "length_queries", "dim"],  # Layer output (hidden states)
+                Optional[TensorType["batch", "num_heads", "length_queries", "length_keys"]],
+                Optional[TensorType["batch", "num_heads", "length_queries", "length_keys"]],
+            ]:
 
         residual = x  # Store input
 
@@ -302,7 +331,6 @@ class NewAttention(nn.Module):
             else:
                 v_input = x  # Used for self-attention
 
-            v = self.to_v(v_input)  # Create values via a linear projection
             attn_map = previous_attn_map  # Set the current attention map to the last map (includes last mask)
             dots = None  # We did not calculate any attention dots
 
@@ -326,35 +354,18 @@ class NewAttention(nn.Module):
             if exists(positional_bias_fn):
                 dots = positional_bias_fn(dots)  # Apply a positional bias to the attention map
 
-            if exists(mask):
-                dots = dots + mask  # Add negative infinity to masked positions, and 0 elsewhere
-
             if self.causal_mask_bool:
-                # This is Lucid's implementation
-                # Creating the mask at model initialization is faster (0.2 - 0.5% in my experiments) but I haven't
-                # found a way to keep the flexibility of this method, with respect to device and dtype
-
-                mask_value = max_neg_value(dots)  # the maximum negative number PyTorch allows, for this dtype
-                i, j = dots.shape[-2:]  # since the dots have shape (batch_size, num_heads, q_length, kv_length)
-                r = torch.arange(i, device=dots.device)  # count up to the number of queries
-                mask = rearrange(r, 'i -> () () i ()') < rearrange(r, 'j -> () () () j')  # creates a matrix that is
-                # true iff the row number is less than the column number (so it's true in the upper triangle)
-
-                if i != j:
-                    # This is only required when the query length is not equal to the key/value length, for example,
-                    # when we are generating using a key/value cache (and the query length is 1)
-                    mask = F.pad(mask, (j - i, 0), value=False)  # pad j - i columns to the left of the mask with false
-
-                dots.masked_fill_(mask, mask_value)  # replace the dots value with negative inf, where mask is true
+                dots = self._apply_causal_mask(_dots=dots)
 
             attn_map = self.attn_fn(dots, dim=-1)  # Take the softmax over the length of the sequence (keys/values)
 
         else:
             raise "If self.previous_attention_bool is True, previous_attn_map needs to be given"
 
-        x = einsum('b h i j, b h j d -> b h i d', attn_map, v)  # Weighted sum of value heads based on attn_map
-        x = rearrange(x, 'b h n d -> b n (h d)')  # Merge the heads back together so we have the same number of
-        # features as our input
+        x = self._weighted_sum(_v=v_input, _attn_map=attn_map, _rope=rotary_pos_emb)
+
+        # Merge the heads back together so we have the same number of features as our input
+        x = rearrange(x, 'batch num_heads length_queries attn_dim -> batch length_queries (num_heads attn_dim)')
 
         x = self.to_out(x)  # Send through a final linear projection
         x = x + residual  # Add the layer's input to create a residual/skip connection
