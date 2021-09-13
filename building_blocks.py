@@ -36,21 +36,43 @@ Without FFNs, transformers don't work well: https://arxiv.org/abs/2103.03404
 
 class FFN(nn.Module):
     def __init__(self,
-                 dim: int,  # Input and output dimension size
-                 ff_mult: Union[int, float] = 4,  # Hidden layer dimension size multiplier
+                 dim: int,  # Input and output dimension size (typically it is d_model)
+                 ff_mult: Union[int, float],  # Hidden layer dimension size multiplier
+                 num_projections: int = 0,  # Number of projections which are multiplied by each other, element-wise
+                 num_gelu: int = 0,  # Number of projections to send through a GELU
                  dropout: float = 0.0,  # Features to dropout (between 0 and 1)
                  pre_norm_bool: bool = True,  # Apply layer normalization before the FFN
                  post_norm_bool: bool = False,  # Apply layer normalization after the FFN
                  ):
         super().__init__()
         """
-        This is the "vanilla", or standard FFN used in transformer blocks. We use a GELU activation function because
-        that is most common, and the exact choice of activation function should not matter that much. Please see
-        https://arxiv.org/abs/2102.11972 - page 8.
+        This is the FFN used in transformer blocks. We use a GELU activation function because that is most common, and
+        the exact choice of activation function should not matter that much. Please see https://arxiv.org/abs/2102.11972
+        - page 8.
+        
+        It can be configured as Gated Linear Unit (GLU) variants for feedforward networks. 
+        See: https://arxiv.org/abs/2002.05202
+
+        Examples:
+        GEGLU ---> num_projections=2, num_gelu=1
+        Bilinear ---> num_projections=2, num_gelu=0
+        Trilinear ---> num_projections=3, num_gelu=0
+
+        *WARNING*: Increasing num_projections will increase the parameter count of your model. To match the param count
+        of a vanilla FFN with ff_mult=4, use ff_mult=2.667 if num_projections=2, ff_mult=2 if num_projections=3, or
+        ff_mult=1.6 if num_projections=4
         """
 
         # Config
-        inner_dim = int(dim * ff_mult)
+        inner_dim = int(ff_mult*dim)
+        assert 4 >= num_projections, "num_projections must be less than or equal to 4"
+        assert num_projections >= num_gelu >= 0, "num_gelu must be >= 0, and <= num_projections"
+        if self.num_projections != 0:
+            assert inner_dim % num_projections == 0, "num_projections must divide evenly into inner_dim"
+
+        self.dim = dim
+        self.num_projections = num_projections
+        self.num_gelu = num_gelu
         self.pre_norm_bool = pre_norm_bool
         self.post_norm_bool = post_norm_bool
 
@@ -61,12 +83,37 @@ class FFN(nn.Module):
         if self.post_norm_bool:
             self.post_norm = nn.LayerNorm(dim)
 
-        self.net = nn.Sequential(
-            nn.Linear(dim, inner_dim),  # Project to more features
-            nn.GELU(),  # Activation function
-            nn.Dropout(dropout),  # Set some features to zero
-            nn.Linear(inner_dim, dim),  # Project back down
-        )
+        if self.num_projections == 0:
+            self.proj_up = nn.Linear(dim, inner_dim)
+        else:
+            self.proj_up = nn.Linear(dim, inner_dim * num_projections)
+
+        self.dropout = nn.Dropout(dropout)
+        self.proj_down = nn.Linear(inner_dim, dim)
+
+    @typechecked
+    def _split_and_multiply(self, x: TensorType["batch", "length", "in_dim"]) \
+            -> TensorType["batch", "length", "out_dim"]:
+
+        # Split into chunks of equal shape along the feature/last dimension
+        x = x.chunk(self.num_projections, dim=-1)
+
+        if self.num_gelu > 0:
+            # Loop through every chunk, if the chunk index is less than self.num_gelu, then apply a GELU
+            # This will result in GELU(s) being applied to self.num_gelu chunks
+            x = [F.gelu(chunk) if _idx < self.num_gelu else chunk for _idx, chunk in enumerate(x)]
+
+        # Multiply the chunks by each other, element-wise
+        if self.num_projections == 2:
+            x = x[0] * x[1]
+        elif self.num_projections == 3:
+            x = x[0] * x[1] * x[2]
+        elif self.num_projections == 4:
+            x = x[0] * x[1] * x[2] * x[3]
+        else:
+            raise "self.num_projections out of range, inside of forward pass"
+
+        return x
 
     @typechecked
     def forward(self, x: TensorType["batch", "length", "dim"]) \
@@ -77,7 +124,15 @@ class FFN(nn.Module):
         if self.pre_norm_bool:
             x = self.pre_norm(x)  # Normalize the representations before the FFN
 
-        x = self.net(x)  # Send through FFN
+        x = self.proj_up(x)  # Linearly project up to inner_dim, or inner_dim * num_projections, features
+
+        if self.num_projections == 0:
+            x = F.gelu(x)
+        else:
+            x = self._split_and_multiply(x)  # Split up and multiply, element-wise, the intermediate representations
+
+        x = self.dropout(x)  # Set some features to zero
+        x = self.proj_down(x)  # Project back down
         x = x + residual  # Add the layer's input to create a residual/skip connection
 
         if self.post_norm_bool:

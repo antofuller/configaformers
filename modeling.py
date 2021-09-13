@@ -26,7 +26,7 @@ class Transformer(nn.Module):
                              num_heads=heads,
                              ),
                 FFN(dim,
-                    ),
+                    ff_mult=4),
             ]))
 
         # Config
