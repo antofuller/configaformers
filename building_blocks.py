@@ -9,6 +9,9 @@ from typeguard import typechecked
 from typing import Optional, Tuple
 
 
+patch_typeguard()
+
+
 def exists(val):
     return val is not None
 
@@ -33,18 +36,18 @@ Without FFNs, transformers don't work well: https://arxiv.org/abs/2103.03404
 
 class FFN(nn.Module):
     def __init__(self,
-                 dim,  # Input and output dimension size
-                 ff_mult=4,  # Hidden layer dimension size multiplier
-                 dropout=0.0,  # Features to dropout (between 0 and 1)
-                 pre_norm_bool=True,  # Apply layer normalization before the FFN
-                 post_norm_bool=False,  # Apply layer normalization after the FFN
+                 dim: int,  # Input and output dimension size
+                 ff_mult: Optional[int, float] = 4,  # Hidden layer dimension size multiplier
+                 dropout: float = 0.0,  # Features to dropout (between 0 and 1)
+                 pre_norm_bool: bool = True,  # Apply layer normalization before the FFN
+                 post_norm_bool: bool = False,  # Apply layer normalization after the FFN
                  ):
+        super().__init__()
         """
         This is the "vanilla", or standard FFN used in transformer blocks. We use a GELU activation function because
         that is most common, and the exact choice of activation function should not matter that much. Please see
         https://arxiv.org/abs/2102.11972 - page 8.
         """
-        super().__init__()
 
         # Config
         inner_dim = int(dim * ff_mult)
@@ -61,11 +64,14 @@ class FFN(nn.Module):
         self.net = nn.Sequential(
             nn.Linear(dim, inner_dim),  # Project to more features
             nn.GELU(),  # Activation function
-            nn.Dropout(dropout),  # Set some features to 0
+            nn.Dropout(dropout),  # Set some features to zero
             nn.Linear(inner_dim, dim),  # Project back down
         )
 
-    def forward(self, x):
+    @typechecked
+    def forward(self, x: TensorType["batch", "length", "dim"]) \
+            -> TensorType["batch", "length", "dim"]:
+
         residual = x  # Store input
 
         if self.pre_norm_bool:
@@ -82,14 +88,15 @@ class FFN(nn.Module):
 
 class GLUVariantFFN(nn.Module):
     def __init__(self,
-                 dim,  # Input and output dimension size (typically it is d_model)
-                 ff_mult,  # Hidden layer dimension size multiplier
-                 num_projections=2,  # Number of input projections which are multiplied by each other, element-wise
-                 num_gelu=1,  # Number of projections to send through a GELU
-                 dropout=0.0,  # Features to dropout (between 0 and 1)
-                 pre_norm_bool=True,  # Apply layer normalization before the FFN
-                 post_norm_bool=False,  # Apply layer normalization after the FFN
+                 dim: int,  # Input and output dimension size (typically it is d_model)
+                 ff_mult: Optional[int, float],  # Hidden layer dimension size multiplier
+                 num_projections: int = 2,  # Number of projections which are multiplied by each other, element-wise
+                 num_gelu: int = 1,  # Number of projections to send through a GELU
+                 dropout: float = 0.0,  # Features to dropout (between 0 and 1)
+                 pre_norm_bool: bool = True,  # Apply layer normalization before the FFN
+                 post_norm_bool: bool = False,  # Apply layer normalization after the FFN
                  ):
+        super().__init__()
         """
         Gated Linear Unit (GLU) variants for feedforward networks. See: https://arxiv.org/abs/2002.05202
 
@@ -102,7 +109,6 @@ class GLUVariantFFN(nn.Module):
         of a VanillaFFN with ff_mult=4, use ff_mult=2.667 if num_projections=2, ff_mult=2 if num_projections=3, or
         ff_mult=1.6 if num_projections=4
         """
-        super().__init__()
 
         # Config
         inner_dim = int(ff_mult*dim)
@@ -127,14 +133,12 @@ class GLUVariantFFN(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.proj_down = nn.Linear(inner_dim, dim)
 
-    def forward(self, x):
-        residual = x  # Store input
+    @typechecked
+    def _split_and_multiply(self, x: TensorType["batch", "length", "in_dim"]) \
+            -> TensorType["batch", "length", "out_dim"]:
 
-        if self.pre_norm_bool:
-            x = self.pre_norm(x)  # Normalize the representations before the FFN
-
-        # Linearly project up to inner_dim * num_projections features, then split into chunks of equal shape
-        x = self.proj_up(x).chunk(self.num_projections, dim=-1)
+        # Split into chunks of equal shape along the feature/last dimension
+        x = x.chunk(self.num_projections, dim=-1)
 
         if self.num_gelu > 0:
             # Loop through every chunk, if the chunk index is less than self.num_gelu, then apply a GELU
@@ -151,7 +155,21 @@ class GLUVariantFFN(nn.Module):
         else:
             raise "self.num_projections out of range, inside of forward pass"
 
-        x = self.dropout(x)
+        return x
+
+    @typechecked
+    def forward(self, x: TensorType["batch", "length", "dim"]) \
+            -> TensorType["batch", "length", "dim"]:
+
+        residual = x  # Store input
+
+        if self.pre_norm_bool:
+            x = self.pre_norm(x)  # Normalize the representations before the FFN
+
+        x = self.proj_up(x)  # Linearly project up to inner_dim * num_projections features
+        x = self._split_and_multiply(x)  # Split up and multiply, element-wise, the intermediate representations
+
+        x = self.dropout(x)  # Set some features to zero
         x = self.proj_down(x)  # Project back down
         x = x + residual  # Add the layer's input to create a residual/skip connection
 
@@ -176,23 +194,23 @@ working with very long sequences (i.e. in the thousands of tokens) - stick with 
 
 class NewAttention(nn.Module):
     def __init__(self,
-                 dim,  # Input and output dimension size (typically it is d_model)
-                 attn_dim,  # Dimension size of attention (typically it is equal to dim)
-                 num_heads,  # Number of attention heads
-                 previous_attention_bool=False,  # Whether or not to re-use the last attention map
-                 pre_norm_bool=True,  # Apply layer normalization before attention
-                 post_norm_bool=False,  # Apply layer normalization after attention
-                 causal_mask_bool=True,  # Apply a causal mask (used for auto-regressive models)
-                 rotate_qk_bool=True,  # Apply a rotation to queries and keys, before their dot product
-                 rotate_v_bool=True,  # Apply a rotation to values
+                 dim: int,  # Input and output dimension size (typically it is d_model)
+                 attn_dim: int,  # Dimension size of attention (typically it is equal to dim)
+                 num_heads: int,  # Number of attention heads
+                 previous_attention_bool: bool = False,  # Whether or not to re-use the last attention map
+                 pre_norm_bool: bool = True,  # Apply layer normalization before attention
+                 post_norm_bool: bool = False,  # Apply layer normalization after attention
+                 causal_mask_bool: bool = True,  # Apply a causal mask (used for auto-regressive models)
+                 rotate_qk_bool: bool = True,  # Apply a rotation to queries and keys, before their dot product
+                 rotate_v_bool: bool = True,  # Apply a rotation to values
                  ):
+        super().__init__()
         """
         Standard attention function, with a few features. Lazy attention (set previous_attention_bool=True) allows us
         to skip calculating a new attention map, and re-use the last attention map: https://arxiv.org/abs/2102.12702 .
         When not using lazy attention, we can use residual attention (https://arxiv.org/abs/2012.11747) by giving this
         module previous_attn_dots, which are the dots from the last attention layer.
         """
-        super().__init__()
 
         # Config
         dim_head = int(attn_dim / num_heads)
@@ -239,9 +257,12 @@ class NewAttention(nn.Module):
         _q = self.to_q(_q)  # create queries via a linear projection
         _k = self.to_k(_k)  # create keys via a linear projection
 
-        # For q, k, and v, rearrange the features into heads (hence the name multi-headed attention)
-        _q, _k, = map(lambda t: rearrange(t, 'batch length (num_heads head_dim) -> batch num_heads length head_dim',
-                                             num_heads=self.num_heads), (_q, _k))
+        # For q, and k, rearrange the features into heads (hence the name multi-headed attention)
+        _q = rearrange(_q, 'batch length_queries (num_heads head_dim) -> batch num_heads length_queries head_dim',
+                       num_heads=self.num_heads)
+
+        _k = rearrange(_k, 'batch length_keys (num_heads head_dim) -> batch num_heads length_keys head_dim',
+                       num_heads=self.num_heads)
 
         if self.rotate_qk_bool:
             assert exists(_rope), "Layer must be given RoPE (rotary embeddings) if rotate_qk_bool is True"
