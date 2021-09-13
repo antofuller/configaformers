@@ -6,7 +6,7 @@ from positional_and_masking_utils import apply_rotary_pos_emb
 import math
 from torchtyping import TensorType, patch_typeguard
 from typeguard import typechecked
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
 
 patch_typeguard()
@@ -37,7 +37,7 @@ Without FFNs, transformers don't work well: https://arxiv.org/abs/2103.03404
 class FFN(nn.Module):
     def __init__(self,
                  dim: int,  # Input and output dimension size
-                 ff_mult: Optional[int, float] = 4,  # Hidden layer dimension size multiplier
+                 ff_mult: Union[int, float] = 4,  # Hidden layer dimension size multiplier
                  dropout: float = 0.0,  # Features to dropout (between 0 and 1)
                  pre_norm_bool: bool = True,  # Apply layer normalization before the FFN
                  post_norm_bool: bool = False,  # Apply layer normalization after the FFN
@@ -89,7 +89,7 @@ class FFN(nn.Module):
 class GLUVariantFFN(nn.Module):
     def __init__(self,
                  dim: int,  # Input and output dimension size (typically it is d_model)
-                 ff_mult: Optional[int, float],  # Hidden layer dimension size multiplier
+                 ff_mult: Union[int, float],  # Hidden layer dimension size multiplier
                  num_projections: int = 2,  # Number of projections which are multiplied by each other, element-wise
                  num_gelu: int = 1,  # Number of projections to send through a GELU
                  dropout: float = 0.0,  # Features to dropout (between 0 and 1)
