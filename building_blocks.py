@@ -67,7 +67,7 @@ class FFN(nn.Module):
         inner_dim = int(ff_mult*dim)
         assert 4 >= num_projections, "num_projections must be less than or equal to 4"
         assert num_projections >= num_gelu >= 0, "num_gelu must be >= 0, and <= num_projections"
-        if self.num_projections != 0:
+        if num_projections != 0:
             assert inner_dim % num_projections == 0, "num_projections must divide evenly into inner_dim"
 
         self.dim = dim
