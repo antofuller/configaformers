@@ -23,7 +23,7 @@ def max_neg_value(tensor):
     return -torch.finfo(tensor.dtype).max
 
 
-def build_layer(layer_config, _dim_model):
+def add_default_config(layer_config):
     if layer_config["type"] == "Attention":
         default_args = get_default_args(Attention)
 
@@ -36,9 +36,7 @@ def build_layer(layer_config, _dim_model):
             else:
                 input_dict[key] = layer_config[key]
 
-        return Attention(dim=_dim_model,
-                         **input_dict,
-                         )
+        return input_dict
 
     if layer_config["type"] == "FFN":
         default_args = get_default_args(FFN)
@@ -52,9 +50,23 @@ def build_layer(layer_config, _dim_model):
             else:
                 input_dict[key] = layer_config[key]
 
+        return input_dict
+
+
+def build_layer(layer_config, _dim_model):
+    if layer_config["type"] == "Attention":
+        exclude_keys = ['type']
+        input_dict = {k: layer_config[k] for k in set(list(layer_config.keys())) - set(exclude_keys)}
+
+        return Attention(dim=_dim_model,
+                         **input_dict)
+
+    if layer_config["type"] == "FFN":
+        exclude_keys = ['type']
+        input_dict = {k: layer_config[k] for k in set(list(layer_config.keys())) - set(exclude_keys)}
+
         return FFN(dim=_dim_model,
-                   **input_dict,
-                   )
+                   **input_dict)
 
 
 class Transformer(nn.Module):
@@ -67,6 +79,9 @@ class Transformer(nn.Module):
         self.vocab_size = config['vocab_size']
         self.num_layers = len(config['layers'])
         self.dim_rope = config['dim_rope']
+
+        for layer_id in range(self.num_layers):
+            config['layers'][layer_id] = add_default_config(config['layers'][layer_id])
 
         self.layers = nn.ModuleList([])
         for layer_id in range(self.num_layers):
