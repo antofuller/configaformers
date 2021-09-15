@@ -29,8 +29,6 @@ def add_default_config(layer_config):
 
         input_dict = {}
         for key in {**layer_config, **default_args}.keys():
-            if key == "type":
-                continue
             if key not in layer_config.keys():
                 input_dict[key] = default_args[key]
             else:
@@ -43,8 +41,6 @@ def add_default_config(layer_config):
 
         input_dict = {}
         for key in {**layer_config, **default_args}.keys():
-            if key == "type":
-                continue
             if key not in layer_config.keys():
                 input_dict[key] = default_args[key]
             else:
