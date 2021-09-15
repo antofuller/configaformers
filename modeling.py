@@ -28,7 +28,7 @@ def build_layer(layer_config, _dim_model):
         default_args = get_default_args(Attention)
 
         input_dict = {}
-        for key in default_args:
+        for key in {**layer_config, **default_args}.keys():
             if key == "type":
                 continue
             if key not in layer_config.keys():
@@ -36,10 +36,25 @@ def build_layer(layer_config, _dim_model):
             else:
                 input_dict[key] = layer_config[key]
 
-        print(input_dict)
         return Attention(dim=_dim_model,
                          **input_dict,
                          )
+
+    if layer_config["type"] == "FFN":
+        default_args = get_default_args(FFN)
+
+        input_dict = {}
+        for key in {**layer_config, **default_args}.keys():
+            if key == "type":
+                continue
+            if key not in layer_config.keys():
+                input_dict[key] = default_args[key]
+            else:
+                input_dict[key] = layer_config[key]
+
+        return FFN(dim=_dim_model,
+                   **input_dict,
+                   )
 
 
 class Transformer(nn.Module):
@@ -57,15 +72,6 @@ class Transformer(nn.Module):
             self.layers.append(nn.ModuleList([
                 build_layer(layer_config=config['layers'][layer_id], _dim_model=self.dim_model),
             ]))
-        # for layer_id in range(self.num_layers):
-        #     self.layers.append(nn.ModuleList([
-        #         Attention(dim=dim,
-        #                   attn_dim=dim,
-        #                   num_heads=heads,
-        #                   ),
-        #         FFN(dim,
-        #             ff_mult=4),
-        #     ]))
 
         # Input utils
         self.token_emb = nn.Embedding(self.vocab_size, self.dim_model)
