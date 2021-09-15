@@ -4,6 +4,7 @@ from positional_and_masking_utils import RotaryEmbedding
 import torch
 import inspect
 
+
 def get_default_args(func):
     signature = inspect.signature(func)
     return {
@@ -11,6 +12,7 @@ def get_default_args(func):
         for k, v in signature.parameters.items()
         if v.default is not inspect.Parameter.empty
     }
+
 
 """
 *** Basic implementation to test building blocks ***
@@ -34,6 +36,7 @@ def build_layer(layer_config, _dim_model):
             else:
                 input_dict[key] = layer_config[key]
 
+        print(input_dict)
         return Attention(dim=_dim_model,
                          **input_dict,
                          )
