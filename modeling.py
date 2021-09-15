@@ -49,20 +49,20 @@ def add_default_config(layer_config):
         return input_dict
 
 
-def build_layer(layer_config, _dim_model):
-    if layer_config["type"] == "Attention":
-        exclude_keys = ['type']
-        input_dict = {k: layer_config[k] for k in set(list(layer_config.keys())) - set(exclude_keys)}
-
-        return Attention(dim=_dim_model,
-                         **input_dict)
-
-    if layer_config["type"] == "FFN":
-        exclude_keys = ['type']
-        input_dict = {k: layer_config[k] for k in set(list(layer_config.keys())) - set(exclude_keys)}
-
-        return FFN(dim=_dim_model,
-                   **input_dict)
+# def build_layer(layer_config, _dim_model):
+#     if layer_config["type"] == "Attention":
+#         exclude_keys = ['type']
+#         input_dict = {k: layer_config[k] for k in set(list(layer_config.keys())) - set(exclude_keys)}
+#
+#         return Attention(dim=_dim_model,
+#                          **input_dict)
+#
+#     if layer_config["type"] == "FFN":
+#         exclude_keys = ['type']
+#         input_dict = {k: layer_config[k] for k in set(list(layer_config.keys())) - set(exclude_keys)}
+#
+#         return FFN(dim=_dim_model,
+#                    **input_dict)
 
 
 class Transformer(nn.Module):
@@ -81,9 +81,26 @@ class Transformer(nn.Module):
 
         self.layers = nn.ModuleList([])
         for layer_id in range(self.num_layers):
-            self.layers.append(nn.ModuleList([
-                build_layer(layer_config=config['layers'][layer_id], _dim_model=self.dim_model),
-            ]))
+            layer_config = config['layers'][layer_id]
+            if layer_config["type"] == "Attention":
+                exclude_keys = ['type']
+                input_dict = {k: layer_config[k] for k in set(list(layer_config.keys())) - set(exclude_keys)}
+
+                self.layers.append(nn.ModuleList([
+                    Attention(dim=self.dim_model,
+                              **input_dict),
+                ]))
+
+            if layer_config["type"] == "FFN":
+                exclude_keys = ['type']
+                input_dict = {k: layer_config[k] for k in set(list(layer_config.keys())) - set(exclude_keys)}
+
+                self.layers.append(nn.ModuleList([
+                    FFN(dim=self.dim_model,
+                        **input_dict),
+                ]))
+            else:
+                print(f"Layer type does not match any available types.")
 
         # Input utils
         self.token_emb = nn.Embedding(self.vocab_size, self.dim_model)
