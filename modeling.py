@@ -62,6 +62,7 @@ class Transformer(nn.Module):
         super().__init__()
 
         # Config
+        self.config = config
         self.dim_model = config['dim_model']
         self.vocab_size = config['vocab_size']
         self.num_layers = len(config['layers'])
@@ -84,11 +85,27 @@ class Transformer(nn.Module):
         bsz = seq_ids.shape[0]
         seq_len = seq_ids.shape[1]
         x = self.token_emb(seq_ids).view(bsz, seq_len, self.dim_model)
-        rotary_pos_emb = self.rotary_pos_emb(seq_len)
+        rotary_pos_emb_init = self.rotary_pos_emb(seq_len)
+        attn_map = None
+        dots = None
 
-        for self_attn, self_ff in self.layers:
-            x, _, _ = self_attn(x=x, rotary_pos_emb=rotary_pos_emb)
-            x = self_ff(x=x)
+        for layer_id, layer_func in enumerate(self.layers):
+            layer_config = self.config['layers'][layer_id]
+
+            if layer_config['type'] == "Attention":
+                if layer_config['rotate_qk_bool'] or layer_config['rotate_v_bool']:
+                    rotary_pos_emb = rotary_pos_emb_init
+                else:
+                    rotary_pos_emb = None
+
+                x, attn_map, dots = layer_func(x=x,
+                                               previous_attn_map=attn_map,
+                                               previous_attn_dots=dots,
+                                               rotary_pos_emb=rotary_pos_emb,
+                                               )
+
+            elif layer_config['type'] == "FFN":
+                x = layer_func(x=x)
 
         x = self.logits_input_norm(x)
         logits = self.to_logits(x).view(bsz, seq_len, self.vocab_size)

@@ -160,6 +160,7 @@ class Attention(nn.Module):
                  attn_dim: int,  # Dimension size of attention (typically it is equal to dim)
                  num_heads: int,  # Number of attention heads
                  previous_attention_bool: bool = False,  # Whether or not to re-use the last attention map
+                 residual_attention_bool: bool = False,  # Whether or not to use an attention skip connection
                  pre_norm_bool: bool = True,  # Apply layer normalization before attention
                  post_norm_bool: bool = False,  # Apply layer normalization after attention
                  causal_mask_bool: bool = True,  # Apply a causal mask (used for auto-regressive models)
@@ -181,6 +182,7 @@ class Attention(nn.Module):
         self.scale = dim_head ** -0.5
         self.num_heads = num_heads
         self.previous_attention_bool = previous_attention_bool
+        self.residual_attention_bool = residual_attention_bool
         self.pre_norm_bool = pre_norm_bool
         self.post_norm_bool = post_norm_bool
         self.causal_mask_bool = causal_mask_bool
@@ -331,7 +333,7 @@ class Attention(nn.Module):
 
             dots = self._calculate_attention_map(_q=q_input, _k=k_input, _rope=rotary_pos_emb)
 
-            if exists(previous_attn_dots):
+            if self.residual_attention_bool:
                 dots = dots + previous_attn_dots  # Add attention dots residual connection
 
             if exists(positional_bias_fn):
