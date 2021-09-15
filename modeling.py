@@ -91,7 +91,7 @@ class Transformer(nn.Module):
                               **input_dict),
                 ]))
 
-            if layer_config["type"] == "FFN":
+            elif layer_config["type"] == "FFN":
                 exclude_keys = ['type']
                 input_dict = {k: layer_config[k] for k in set(list(layer_config.keys())) - set(exclude_keys)}
 
