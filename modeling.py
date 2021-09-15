@@ -126,14 +126,14 @@ class Transformer(nn.Module):
                 else:
                     rotary_pos_emb = None
 
-                x, attn_map, dots = layer_func(x=x,
-                                               previous_attn_map=attn_map,
-                                               previous_attn_dots=dots,
-                                               rotary_pos_emb=rotary_pos_emb,
-                                               )
+                x, attn_map, dots = layer_func[0](x=x,
+                                                  previous_attn_map=attn_map,
+                                                  previous_attn_dots=dots,
+                                                  rotary_pos_emb=rotary_pos_emb,
+                                                  )
 
             elif layer_config['type'] == "FFN":
-                x = layer_func(x=x)
+                x = layer_func[0](x=x)
 
         x = self.logits_input_norm(x)
         logits = self.to_logits(x).view(bsz, seq_len, self.vocab_size)
