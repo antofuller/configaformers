@@ -140,7 +140,7 @@ class FFN(nn.Module):
             self.final_gate = nn.Linear(dim, dim)
 
         if self.token_shift_config:
-            self.shift_tokens = ShiftTokens(config=token_shift_config, dim=self.dim)
+            self.shift_tokens = ShiftTokens(config=token_shift_config, dim=dim)
 
         self.dropout = nn.Dropout(dropout)
         self.proj_down = nn.Linear(inner_dim, dim)
@@ -270,7 +270,7 @@ class Attention(nn.Module):
             self.post_norm = nn.LayerNorm(dim)
 
         if self.token_shift_config:
-            self.shift_tokens = ShiftTokens(config=token_shift_config, dim=self.dim)
+            self.shift_tokens = ShiftTokens(config=token_shift_config, dim=dim)
 
         self.attn_fn = F.softmax
         self.to_out = nn.Linear(attn_dim, dim)
