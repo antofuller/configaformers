@@ -6,7 +6,7 @@ from positional_and_masking_utils import apply_rotary_pos_emb
 import math
 from torchtyping import TensorType, patch_typeguard
 from typeguard import typechecked
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, List, Dict
 
 
 patch_typeguard()
@@ -18,6 +18,48 @@ def exists(val):
 
 def max_neg_value(tensor):
     return -torch.finfo(tensor.dtype).max
+
+
+def shift(t, amount, mask=None):
+    if amount == 0:
+        return t
+
+    if exists(mask):
+        t = t.masked_fill(~mask[..., None], 0.)
+
+    return F.pad(t, (0, 0, amount, -amount), value = 0.)
+
+
+class ShiftTokens(nn.Module):
+    def __init__(self, config, dim):
+        super().__init__()
+        self.config = config
+        sum_features = sum([x['features'] for x in config])
+        assert sum_features == dim, f"Features add up to {sum_features} but dim is {dim}"
+
+    @typechecked
+    def forward(self, _x: TensorType["batch", "length", "dim"],
+                mask=None,
+                ) \
+            -> TensorType["batch", "length", "dim"]:
+
+        splitted = []
+        feature_position = 0  # keep track of feature position during for loop
+        for idx in range(len(self.config)):
+            features_amt = self.config[idx]['features']
+            shift_amt = self.config[idx]['shift']
+
+            start_idx = feature_position
+            end_idx = start_idx + features_amt
+
+            chunk = _x[:, :, start_idx:end_idx]
+            chunk = shift(chunk, shift_amt, mask)
+            splitted.append(chunk)
+
+            feature_position += features_amt
+
+        _x = torch.cat(splitted, dim=-1)
+        return _x
 
 
 """
@@ -44,6 +86,7 @@ class FFN(nn.Module):
                  pre_norm_bool: bool = True,  # Apply layer normalization before the FFN
                  post_norm_bool: bool = False,  # Apply layer normalization after the FFN
                  output_sigmoid_gate_bool: bool = False,  # Gate the FFN output and sigmoid
+                 token_shift_config: Optional[List[Dict]] = None,  # Config for token shifting
                  ):
         super().__init__()
         """
@@ -79,6 +122,7 @@ class FFN(nn.Module):
         self.pre_norm_bool = pre_norm_bool
         self.post_norm_bool = post_norm_bool
         self.output_sigmoid_gate_bool = output_sigmoid_gate_bool
+        self.token_shift_config = token_shift_config
 
         # Functions
         if self.pre_norm_bool:
@@ -95,32 +139,35 @@ class FFN(nn.Module):
         if self.output_sigmoid_gate_bool:
             self.final_gate = nn.Linear(dim, dim)
 
+        if self.token_shift_config:
+            self.shift_tokens = ShiftTokens(config=token_shift_config, dim=self.dim)
+
         self.dropout = nn.Dropout(dropout)
         self.proj_down = nn.Linear(inner_dim, dim)
 
     @typechecked
-    def _split_and_multiply(self, x: TensorType["batch", "length", "in_dim"]) \
+    def _split_and_multiply(self, _x: TensorType["batch", "length", "in_dim"]) \
             -> TensorType["batch", "length", "out_dim"]:
 
         # Split into chunks of equal shape along the feature/last dimension
-        x = x.chunk(self.num_projections, dim=-1)
+        _x = _x.chunk(self.num_projections, dim=-1)
 
         if self.num_gelu > 0:
             # Loop through every chunk, if the chunk index is less than self.num_gelu, then apply a GELU
             # This will result in GELU(s) being applied to self.num_gelu chunks
-            x = [F.gelu(chunk) if _idx < self.num_gelu else chunk for _idx, chunk in enumerate(x)]
+            _x = [F.gelu(chunk) if _idx < self.num_gelu else chunk for _idx, chunk in enumerate(_x)]
 
         # Multiply the chunks by each other, element-wise
         if self.num_projections == 2:
-            x = x[0] * x[1]
+            _x = _x[0] * _x[1]
         elif self.num_projections == 3:
-            x = x[0] * x[1] * x[2]
+            _x = _x[0] * _x[1] * _x[2]
         elif self.num_projections == 4:
-            x = x[0] * x[1] * x[2] * x[3]
+            _x = _x[0] * _x[1] * _x[2] * _x[3]
         else:
             raise "self.num_projections out of range, inside of forward pass"
 
-        return x
+        return _x
 
     @typechecked
     def forward(self, x: TensorType["batch", "length", "dim"]) \
@@ -130,6 +177,9 @@ class FFN(nn.Module):
 
         if self.pre_norm_bool:
             x = self.pre_norm(x)  # Normalize the representations before the FFN
+
+        if self.token_shift_config:
+            x = self.shift_tokens(x)  # Shift neighboring token representations
 
         x = self.proj_up(x)  # Linearly project up to inner_dim, or inner_dim * num_projections, features
 
@@ -176,6 +226,7 @@ class Attention(nn.Module):
                  causal_mask_bool: bool = True,  # Apply a causal mask (used for auto-regressive models)
                  rotate_qk_bool: bool = True,  # Apply a rotation to queries and keys, before their dot product
                  rotate_v_bool: bool = True,  # Apply a rotation to values
+                 token_shift_config: Optional[List[Dict]] = None,  # Config for token shifting
                  ):
         super().__init__()
         """
@@ -216,6 +267,9 @@ class Attention(nn.Module):
 
         if self.post_norm_bool:
             self.post_norm = nn.LayerNorm(dim)
+
+        if self.token_shift_config:
+            self.shift_tokens = ShiftTokens(config=token_shift_config, dim=self.dim)
 
         self.attn_fn = F.softmax
         self.to_out = nn.Linear(attn_dim, dim)
@@ -319,6 +373,9 @@ class Attention(nn.Module):
 
         if self.pre_norm_bool:
             x = self.pre_norm(x)  # Normalize the representations before attention
+
+        if self.token_shift_config:
+            x = self.shift_tokens(x)  # Shift neighboring token representations
 
         if exists(previous_attn_map) and self.previous_attention_bool:  # Re-use the last attention map
             if exists(context):
