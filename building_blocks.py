@@ -250,6 +250,7 @@ class Attention(nn.Module):
         self.attn_dim = attn_dim
         self.rotate_qk_bool = rotate_qk_bool
         self.rotate_v_bool = rotate_v_bool
+        self.token_shift_config = token_shift_config
 
         # Functions
         if self.previous_attention_bool:
