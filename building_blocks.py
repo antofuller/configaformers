@@ -43,6 +43,7 @@ class FFN(nn.Module):
                  dropout: float = 0.0,  # Features to dropout (between 0 and 1)
                  pre_norm_bool: bool = True,  # Apply layer normalization before the FFN
                  post_norm_bool: bool = False,  # Apply layer normalization after the FFN
+                 output_sigmoid_gate_bool: bool = False,  # Gate the FFN output and sigmoid
                  ):
         super().__init__()
         """
@@ -57,6 +58,8 @@ class FFN(nn.Module):
         GEGLU ---> num_projections=2, num_gelu=1
         Bilinear ---> num_projections=2, num_gelu=0
         Trilinear ---> num_projections=3, num_gelu=0
+        RWKV_ChannelMix ---> num_projections=2, num_gelu=1, output_sigmoid_gate_bool=True
+        From: https://github.com/BlinkDL/RWKV-LM (except gelu instead of mish activation)
 
         *WARNING*: Increasing num_projections will increase the parameter count of your model. To match the param count
         of a vanilla FFN with ff_mult=4, use ff_mult=2.667 if num_projections=2, ff_mult=2 if num_projections=3, or
@@ -75,6 +78,7 @@ class FFN(nn.Module):
         self.num_gelu = num_gelu
         self.pre_norm_bool = pre_norm_bool
         self.post_norm_bool = post_norm_bool
+        self.output_sigmoid_gate_bool = output_sigmoid_gate_bool
 
         # Functions
         if self.pre_norm_bool:
@@ -87,6 +91,9 @@ class FFN(nn.Module):
             self.proj_up = nn.Linear(dim, inner_dim)
         else:
             self.proj_up = nn.Linear(dim, inner_dim * num_projections)
+
+        if self.output_sigmoid_gate_bool:
+            self.final_gate = nn.Linear(dim, dim)
 
         self.dropout = nn.Dropout(dropout)
         self.proj_down = nn.Linear(inner_dim, dim)
@@ -133,12 +140,15 @@ class FFN(nn.Module):
 
         x = self.dropout(x)  # Set some features to zero
         x = self.proj_down(x)  # Project back down
-        x = x + residual  # Add the layer's input to create a residual/skip connection
+
+        if self.output_sigmoid_gate_bool:
+            r = self.final_gate(residual)  # Linearly project the layer's input
+            x = torch.sigmoid(r) * x  # Take the sigmoid of r, and multiply it by x, to gate it
 
         if self.post_norm_bool:
-            x = self.post_norm(x)  # Normalize the representations after the residual
+            x = self.post_norm(x)  # Normalize the representations
 
-        return x
+        return x + residual  # Add the layer's input to create a residual/skip connection
 
 
 """
@@ -353,10 +363,11 @@ class Attention(nn.Module):
         x = rearrange(x, 'batch num_heads length_queries attn_dim -> batch length_queries (num_heads attn_dim)')
 
         x = self.to_out(x)  # Send through a final linear projection
-        x = x + residual  # Add the layer's input to create a residual/skip connection
 
         if self.post_norm_bool:
-            x = self.post_norm(x)  # Normalize the representations after attention
+            x = self.post_norm(x)  # Normalize the representations
+
+        x = x + residual  # Add the layer's input to create a residual/skip connection
 
         return x, attn_map, dots  # Return the output, attention map, and the dots (in case we need them later)
 
