@@ -3,7 +3,7 @@ A PyTorch library for highly configurable transformers - easing model architectu
 
 The implementation prioritizes flexibility and readability over speed.
 
-The aim of this library is not to search for SOTA architectures - for that, use a large vanilla transformer (maybe with RoPE and GEGLU). Rather, this library attempts to facilitate searching for transformer architectures that meet your, task-specific, performance-memory-speed requirements. It's also a great way to build intuition about various building blocks by enabling rapid experimentation. 
+The aim of this library is not to search for SOTA architectures - if you only care about accuracy use a massive transformer (maybe with RoPE and GEGLU). Rather, this library attempts to facilitate searching for transformer architectures that meet your, task-specific, performance-memory-speed requirements. It's also a great way to build intuition about various building blocks by enabling rapid experimentation. 
 ## Blocks to Add:
 1. gMLP
 2. Alibi position bias
