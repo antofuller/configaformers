@@ -1,6 +1,7 @@
 # Muddy-Nets
 A PyTorch library for highly configurable transformers - easing model architecture search and experimentation.
 
+The implementation uses lots of type checking, and descriptions.
 ## Blocks to Add:
 1. Depthwise convolution
 2. Fast Fourier Convolution
