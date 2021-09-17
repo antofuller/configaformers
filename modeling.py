@@ -59,6 +59,7 @@ class Transformer(nn.Module):
         self.vocab_size = config['vocab_size']
         self.num_layers = len(config['layers'])
         self.dim_rope = config['dim_rope']
+        self.input_emb_size = config['input_emb_size']
 
         for layer_id in range(self.num_layers):
             config['layers'][layer_id] = add_default_config(config['layers'][layer_id])
@@ -94,16 +95,19 @@ class Transformer(nn.Module):
             ]))
 
         # Input utils
-        self.token_emb = nn.Embedding(self.vocab_size, self.dim_model)
+        self.token_emb = nn.Embedding(self.vocab_size, self.input_emb_size)
         self.rotary_pos_emb = RotaryEmbedding(self.dim_rope)
 
-        # self.logits_input_norm = nn.LayerNorm(self.dim_model)
-        # self.to_logits = nn.Linear(self.dim_model, self.vocab_size)
+        if self.input_emb_size != self.dim_model:
+            self.proj_input = nn.Linear(self.input_emb_size, self.dim_model)
 
     def forward(self, seq_ids):
         bsz = seq_ids.shape[0]
         seq_len = seq_ids.shape[1]
-        x = self.token_emb(seq_ids).view(bsz, seq_len, self.dim_model)
+        x = self.token_emb(seq_ids).view(bsz, seq_len, self.input_emb_size)
+        if self.input_emb_size != self.dim_model:
+            x = self.proj_input(x).view(bsz, seq_len, self.dim_model)
+
         rotary_pos_emb_init = self.rotary_pos_emb(seq_len)
         attn_map = None
         dots = None
@@ -125,9 +129,6 @@ class Transformer(nn.Module):
 
             elif layer_config['type'] == "FFN":
                 x = layer_func[0](x=x)
-
-        # x = self.logits_input_norm(x)
-        # logits = self.to_logits(x).view(bsz, seq_len, self.vocab_size)
 
         output_list = []
         for classifier_fn in self.classifiers:
