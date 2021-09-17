@@ -23,30 +23,27 @@ def max_neg_value(tensor):
     return -torch.finfo(tensor.dtype).max
 
 
+def get_block(_type):
+    if _type == "Attention":
+        return Attention
+
+    elif _type == "FFN":
+        return FFN
+
+
 def add_default_config(layer_config):
-    if layer_config["type"] == "Attention":
-        default_args = get_default_args(Attention)
+    block = get_block(_type=layer_config["type"])
 
-        input_dict = {}
-        for key in {**layer_config, **default_args}.keys():
-            if key not in layer_config.keys():
-                input_dict[key] = default_args[key]
-            else:
-                input_dict[key] = layer_config[key]
+    default_args = get_default_args(block)
 
-        return input_dict
+    input_dict = {}
+    for key in {**layer_config, **default_args}.keys():
+        if key not in layer_config.keys():
+            input_dict[key] = default_args[key]
+        else:
+            input_dict[key] = layer_config[key]
 
-    if layer_config["type"] == "FFN":
-        default_args = get_default_args(FFN)
-
-        input_dict = {}
-        for key in {**layer_config, **default_args}.keys():
-            if key not in layer_config.keys():
-                input_dict[key] = default_args[key]
-            else:
-                input_dict[key] = layer_config[key]
-
-        return input_dict
+    return input_dict
 
 
 class Transformer(nn.Module):
