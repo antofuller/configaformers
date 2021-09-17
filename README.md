@@ -1,7 +1,7 @@
-# Muddy-Nets
+# Config-A-Net
 A PyTorch library for highly configurable transformers - easing model architecture search and experimentation.
 
-The implementation includes lots of type checking, and explanations.
+The implementation prioritizes flexibility and readability over speed.
 ## Blocks to Add:
 1. Depthwise convolution
 2. Fast Fourier Convolution
