@@ -6,7 +6,7 @@ The implementation prioritizes flexibility and readability over speed.
 1. Depthwise convolution
 2. Fast Fourier Convolution
 3. gMLP
-4. Intra-FFN token shift
+4. Alibi position bias
 
 ## Features To Add:
 1. Add basic training script
