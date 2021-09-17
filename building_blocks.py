@@ -122,6 +122,7 @@ class FFN(nn.Module):
                  post_norm_bool: bool = False,  # Apply layer normalization after the FFN
                  output_sigmoid_gate_bool: bool = False,  # Gate the FFN output and sigmoid
                  token_shift_config: Optional[List[Dict]] = None,  # Config for token shifting
+                 inner_token_shift_config: Optional[List[Dict]] = None,  # Config for token shifting the inner features
                  ):
         super().__init__()
         """
@@ -158,6 +159,7 @@ class FFN(nn.Module):
         self.post_norm_bool = post_norm_bool
         self.output_sigmoid_gate_bool = output_sigmoid_gate_bool
         self.token_shift_config = token_shift_config
+        self.inner_token_shift_config = inner_token_shift_config
 
         # Functions
         if self.pre_norm_bool:
@@ -176,6 +178,9 @@ class FFN(nn.Module):
 
         if self.token_shift_config:
             self.shift_tokens = ShiftTokens(config=token_shift_config, dim=dim)
+
+        if self.inner_token_shift_config:
+            self.shift_tokens_inner = ShiftTokens(config=inner_token_shift_config, dim=inner_dim)
 
         self.dropout = nn.Dropout(dropout)
         self.proj_down = nn.Linear(inner_dim, dim)
@@ -222,6 +227,9 @@ class FFN(nn.Module):
             x = F.gelu(x)
         else:
             x = self._split_and_multiply(x)  # Split up and multiply, element-wise, the intermediate representations
+
+        if self.inner_token_shift_config:
+            x = self.shift_tokens_inner(x)  # Shift neighboring token representations
 
         x = self.dropout(x)  # Set some features to zero
         x = self.proj_down(x)  # Project back down
