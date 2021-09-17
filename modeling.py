@@ -62,6 +62,7 @@ class Transformer(nn.Module):
 
         if 'input_emb_size' not in config:
             self.input_emb_size = self.dim_model
+            self.config['input_emb_size'] = self.input_emb_size
         else:
             self.input_emb_size = config['input_emb_size']
 
