@@ -20,6 +20,7 @@ def max_neg_value(tensor):
     return -torch.finfo(tensor.dtype).max
 
 
+@typechecked
 def shift(t: TensorType["batch", "length", "dim"],  # The tensor that will be shifted
           amount: int,  # The amount of time-steps to shift by
           mask: Optional["batch", "length"] = None,  # Token mask
@@ -99,7 +100,12 @@ class Classifier(nn.Module):
         self.to_logits = nn.Linear(dim, num_classes)
         self.norm = nn.LayerNorm(dim)
 
-    def forward(self, x):
+    @typechecked
+    def forward(self,
+                x: TensorType["batch", "length", "dim"],
+                ) \
+            -> TensorType["batch", "length", "num_classes"]:
+
         residual = x  # Store input
         x = self.norm(x)  # Input norm
         x = self.net(x)  # 1-layer MLP
