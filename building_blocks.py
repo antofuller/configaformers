@@ -62,6 +62,41 @@ class ShiftTokens(nn.Module):
         return _x
 
 
+class Classifier(nn.Module):
+    def __init__(
+        self,
+        dim: int,  # Input dimension size (typically it is d_model)
+        ff_mult: Union[int, float] = 4,  # Hidden layer dimension size multiplier
+        dropout: float = 0.0,  # Features to dropout (between 0 and 1)
+        num_classes: int = 2,  # Number of classes
+    ):
+        super().__init__()
+        """
+        num_classes is the number of features to output, for language modeling, num_classes will be equal to the vocab
+        size - where we have 1 class per token. For binary classification (like ELECTRA) we can use num_classes = 2.
+        """
+
+        inner_dim = int(dim * ff_mult)
+        self.net = nn.Sequential(
+            nn.Linear(dim, inner_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(inner_dim, dim)
+        )
+
+        self.to_logits = nn.Linear(dim, num_classes)
+        self.norm = nn.LayerNorm(dim)
+
+    def forward(self, x):
+        residual = x  # Store input
+        x = self.norm(x)  # Input norm
+        x = self.net(x)  # 1-layer MLP
+
+        x = self.norm(x + residual)  # Skip connection and norm
+        x = self.to_logits(x)  # Linearly project to the desired output size
+        return x
+
+
 """
 Feed-forward networks (FFNs), aka multi-layer perceptrons (MLPs), receive each individual token representation and
 perform some computation on them. Typically they consist of a linear projection to a larger dimension, are passed

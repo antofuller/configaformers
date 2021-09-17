@@ -1,5 +1,5 @@
 import torch.nn as nn
-from building_blocks import FFN, Attention
+from building_blocks import FFN, Attention, Classifier
 from positional_and_masking_utils import RotaryEmbedding
 import torch
 import inspect
@@ -49,22 +49,6 @@ def add_default_config(layer_config):
         return input_dict
 
 
-# def build_layer(layer_config, _dim_model):
-#     if layer_config["type"] == "Attention":
-#         exclude_keys = ['type']
-#         input_dict = {k: layer_config[k] for k in set(list(layer_config.keys())) - set(exclude_keys)}
-#
-#         return Attention(dim=_dim_model,
-#                          **input_dict)
-#
-#     if layer_config["type"] == "FFN":
-#         exclude_keys = ['type']
-#         input_dict = {k: layer_config[k] for k in set(list(layer_config.keys())) - set(exclude_keys)}
-#
-#         return FFN(dim=_dim_model,
-#                    **input_dict)
-
-
 class Transformer(nn.Module):
     def __init__(self, config):
         super().__init__()
@@ -102,12 +86,19 @@ class Transformer(nn.Module):
             else:
                 print(f"Layer type does not match any available types.")
 
+        self.classifiers = nn.ModuleList([])
+        for classifier_idx in range(len(config['classifiers'])):
+            self.classifiers.append(nn.ModuleList([
+                Classifier(dim=self.dim_model,
+                           num_classes=config['classifiers'][classifier_idx]),
+            ]))
+
         # Input utils
         self.token_emb = nn.Embedding(self.vocab_size, self.dim_model)
         self.rotary_pos_emb = RotaryEmbedding(self.dim_rope)
 
-        self.logits_input_norm = nn.LayerNorm(self.dim_model)
-        self.to_logits = nn.Linear(self.dim_model, self.vocab_size)
+        # self.logits_input_norm = nn.LayerNorm(self.dim_model)
+        # self.to_logits = nn.Linear(self.dim_model, self.vocab_size)
 
     def forward(self, seq_ids):
         bsz = seq_ids.shape[0]
@@ -135,6 +126,11 @@ class Transformer(nn.Module):
             elif layer_config['type'] == "FFN":
                 x = layer_func[0](x=x)
 
-        x = self.logits_input_norm(x)
-        logits = self.to_logits(x).view(bsz, seq_len, self.vocab_size)
-        return logits
+        # x = self.logits_input_norm(x)
+        # logits = self.to_logits(x).view(bsz, seq_len, self.vocab_size)
+
+        output_list = []
+        for classifier_fn in self.classifiers:
+            output_list.append(classifier_fn[0](x))
+
+        return output_list
