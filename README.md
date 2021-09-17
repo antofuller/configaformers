@@ -1,5 +1,5 @@
-# Config-A-Net
-A PyTorch library for highly configurable transformers - easing model architecture search and experimentation.
+# *configaformer*
+A PyTorch library for highly configurable transformers - easing model architecture search and experimentation. Heavily inspired by https://github.com/lucidrains/x-transformers
 
 The implementation prioritizes flexibility and readability over speed.
 ## Blocks to Add:
