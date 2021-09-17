@@ -30,6 +30,9 @@ def get_block(_type):
     elif _type == "FFN":
         return FFN
 
+    else:
+        raise "Layer type does not match any available types."
+
 
 def add_default_config(layer_config):
     block = get_block(_type=layer_config["type"])
@@ -69,25 +72,15 @@ class Transformer(nn.Module):
         self.layers = nn.ModuleList([])
         for layer_id in range(self.num_layers):
             layer_config = config['layers'][layer_id]
-            if layer_config["type"] == "Attention":
-                exclude_keys = ['type']
-                input_dict = {k: layer_config[k] for k in set(list(layer_config.keys())) - set(exclude_keys)}
+            block = get_block(_type=layer_config["type"])
 
-                self.layers.append(nn.ModuleList([
-                    Attention(dim=self.dim_model,
-                              **input_dict),
-                ]))
+            exclude_keys = ['type']
+            input_dict = {k: layer_config[k] for k in set(list(layer_config.keys())) - set(exclude_keys)}
 
-            elif layer_config["type"] == "FFN":
-                exclude_keys = ['type']
-                input_dict = {k: layer_config[k] for k in set(list(layer_config.keys())) - set(exclude_keys)}
-
-                self.layers.append(nn.ModuleList([
-                    FFN(dim=self.dim_model,
-                        **input_dict),
-                ]))
-            else:
-                print(f"Layer type does not match any available types.")
+            self.layers.append(nn.ModuleList([
+                block(dim=self.dim_model,
+                      **input_dict),
+            ]))
 
         self.classifiers = nn.ModuleList([])
         for classifier_idx in range(len(config['classifiers'])):
