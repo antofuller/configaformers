@@ -59,7 +59,11 @@ class Transformer(nn.Module):
         self.vocab_size = config['vocab_size']
         self.num_layers = len(config['layers'])
         self.dim_rope = config['dim_rope']
-        self.input_emb_size = config['input_emb_size']
+
+        if 'input_emb_size' not in config:
+            self.input_emb_size = self.dim_model
+        else:
+            self.input_emb_size = config['input_emb_size']
 
         for layer_id in range(self.num_layers):
             config['layers'][layer_id] = add_default_config(config['layers'][layer_id])
