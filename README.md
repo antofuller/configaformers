@@ -3,10 +3,8 @@ A PyTorch library for highly configurable transformers - easing model architectu
 
 The implementation prioritizes flexibility and readability over speed.
 ## Blocks to Add:
-1. Depthwise convolution
-2. Fast Fourier Convolution
-3. gMLP
-4. Alibi position bias
+1. gMLP
+2. Alibi position bias
 
 ## Features To Add:
 1. Add basic training script

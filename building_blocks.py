@@ -471,4 +471,3 @@ class Attention(nn.Module):
         x = x + residual  # Add the layer's input to create a residual/skip connection
 
         return x, attn_map, dots  # Return the output, attention map, and the dots (in case we need them later)
-
