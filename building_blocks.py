@@ -20,21 +20,30 @@ def max_neg_value(tensor):
     return -torch.finfo(tensor.dtype).max
 
 
-def shift(t, amount, mask=None):
-    if amount == 0:
+def shift(t: TensorType["batch", "length", "dim"],  # The tensor that will be shifted
+          amount: int,  # The amount of time-steps to shift by
+          mask: Optional["batch", "length"] = None,  # Token mask
+          ) \
+        -> TensorType["batch", "length", "dim"]:
+
+    if amount == 0:  # If the amount of time-steps is 0, then we just return the input tensor
         return t
 
-    if exists(mask):
-        t = t.masked_fill(~mask[..., None], 0.)
+    if exists(mask):  # Set masked values to zero
+        t = t.masked_fill(~mask[..., None], 0.0)
 
-    return F.pad(t, (0, 0, amount, -amount), value = 0.)
+    # This pad operator shifts the features in the sequence (or time) dimension by the amount given, and fills in the
+    # start or end of the sequence with zeros
+    return F.pad(t, (0, 0, amount, -amount), value=0.0)
 
 
 class ShiftTokens(nn.Module):
     def __init__(self, config, dim):
         super().__init__()
         self.config = config
-        sum_features = sum([x['features'] for x in config])
+        sum_features = sum([x['features'] for x in config])  # Add up the number of features to ensure the sum is equal
+        # to the total number of features
+
         assert sum_features == dim, f"Features add up to {sum_features} but dim is {dim}"
 
     @typechecked
@@ -46,20 +55,20 @@ class ShiftTokens(nn.Module):
         splitted = []
         feature_position = 0  # keep track of feature position during for loop
         for idx in range(len(self.config)):
-            features_amt = self.config[idx]['features']
-            shift_amt = self.config[idx]['shift']
+            features_amt = self.config[idx]['features']  # Number of features to grab, for this chunk
+            shift_amt = self.config[idx]['shift']  # Number of sequence positions to shift by
 
             start_idx = feature_position
             end_idx = start_idx + features_amt
 
-            chunk = _x[:, :, start_idx:end_idx]
-            chunk = shift(chunk, shift_amt, mask)
-            splitted.append(chunk)
+            chunk = _x[:, :, start_idx:end_idx]  # Select features and remove them from the input tensor
+            chunk = shift(chunk, shift_amt, mask)  # Perform the shift operation
+            splitted.append(chunk)  # Store them in a list
 
-            feature_position += features_amt
+            feature_position += features_amt  # Update the feature position
 
-        _x = torch.cat(splitted, dim=-1)
-        return _x
+        # Finally, piece the chunks back together (with some of the chunks shifted), and return
+        return torch.cat(splitted, dim=-1)
 
 
 class Classifier(nn.Module):
@@ -73,7 +82,10 @@ class Classifier(nn.Module):
         super().__init__()
         """
         num_classes is the number of features to output, for language modeling, num_classes will be equal to the vocab
-        size - where we have 1 class per token. For binary classification (like ELECTRA) we can use num_classes = 2.
+        size - where we have 1 class per token. For binary classification (like ELECTRA) we can use num_classes = 2. 
+        For knowledge distillation, or contrastive learning, you can output an embedding via num_classes=768, 1024, etc.
+        
+        Right now, only a vanilla FFN is available.
         """
 
         inner_dim = int(dim * ff_mult)
