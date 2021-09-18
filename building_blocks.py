@@ -138,13 +138,14 @@ class FFN(nn.Module):
                  dropout: float = 0.0,  # Features to dropout (between 0 and 1)
                  pre_norm_bool: bool = True,  # Apply layer normalization before the FFN
                  post_norm_bool: bool = False,  # Apply layer normalization after the FFN
-                 output_sigmoid_gate_bool: bool = False,  # Gate the FFN output and sigmoid
+                 output_gate: Optional[Tuple[str, str]] = None,  # If, and how, to gate the block's output
                  token_shift_config: Optional[List[Dict]] = None,  # Config for token shifting
                  inner_token_shift_config: Optional[List[Dict]] = None,  # Config for token shifting the inner features
+                 add_residual: bool = True,  # Add skip connection
                  ):
         super().__init__()
         """
-        This is the FFN used in transformer blocks. We use a GELU activation function because that is most common, and
+        This is the feedforward network (FFN) block. We use a GELU activation function because that is most common, and
         the exact choice of activation function should not matter that much. Please see https://arxiv.org/abs/2102.11972
         - page 8.
         
@@ -155,7 +156,7 @@ class FFN(nn.Module):
         GEGLU ---> num_projections=2, num_gelu=1
         Bilinear ---> num_projections=2, num_gelu=0
         Trilinear ---> num_projections=3, num_gelu=0
-        RWKV_ChannelMix ---> num_projections=2, num_gelu=1, output_sigmoid_gate_bool=True
+        RWKV_ChannelMix ---> num_projections=2, num_gelu=1, output_gate= ("sigmoid", "on_residual")
         From: https://github.com/BlinkDL/RWKV-LM (except gelu instead of mish activation)
 
         *WARNING*: Increasing num_projections will increase the parameter count of your model. To match the param count
@@ -175,9 +176,10 @@ class FFN(nn.Module):
         self.num_gelu = num_gelu
         self.pre_norm_bool = pre_norm_bool
         self.post_norm_bool = post_norm_bool
-        self.output_sigmoid_gate_bool = output_sigmoid_gate_bool
+        self.output_gate = output_gate
         self.token_shift_config = token_shift_config
         self.inner_token_shift_config = inner_token_shift_config
+        self.add_residual = add_residual
 
         # Functions
         if self.pre_norm_bool:
@@ -191,7 +193,7 @@ class FFN(nn.Module):
         else:
             self.proj_up = nn.Linear(dim, inner_dim * num_projections)
 
-        if self.output_sigmoid_gate_bool:
+        if self.output_gate:
             self.final_gate = nn.Linear(dim, dim)
 
         if self.token_shift_config:
@@ -228,6 +230,37 @@ class FFN(nn.Module):
         return _x
 
     @typechecked
+    def _apply_output_gate(self, _x: TensorType["batch", "length", "dim"],
+                           _residual: Optional[TensorType["batch", "length", "dim"]],
+                           ) \
+            -> TensorType["batch", "length", "dim"]:
+
+        if self.output_gate[1] == "on_residual":
+            gate = self.final_gate(_residual)  # Linearly project the layer's input (aka residual)
+
+        elif self.output_gate[1] == "not_on_residual":
+            gate = self.final_gate(_x)  # Linearly project the hidden state
+
+        else:
+            raise "The second element of self.output_gate needs to be 'on_residual' or 'not_on_residual'"
+
+        if self.output_gate[0] == "none":
+            pass  # Don't apply any activation function to the gate
+
+        elif self.output_gate[0] == "gelu":
+            gate = F.gelu(gate)
+
+        elif self.output_gate[0] == "sigmoid":
+            gate = torch.sigmoid(gate)
+
+        else:
+            raise "The first element of self.output_gate needs to be 'none', 'gelu', or 'sigmoid'"
+
+        _x = gate * _x  # Take the sigmoid of r, and multiply it by x, to gate it
+
+        return _x
+
+    @typechecked
     def forward(self, x: TensorType["batch", "length", "dim"]) \
             -> TensorType["batch", "length", "dim"]:
 
@@ -252,14 +285,16 @@ class FFN(nn.Module):
         x = self.dropout(x)  # Set some features to zero
         x = self.proj_down(x)  # Project back down
 
-        if self.output_sigmoid_gate_bool:
-            r = self.final_gate(residual)  # Linearly project the layer's input
-            x = torch.sigmoid(r) * x  # Take the sigmoid of r, and multiply it by x, to gate it
+        if self.output_gate:
+            x = self._apply_output_gate(x, residual)
 
         if self.post_norm_bool:
             x = self.post_norm(x)  # Normalize the representations
 
-        return x + residual  # Add the layer's input to create a residual/skip connection
+        if self.add_residual:
+            x = x + residual  # Add the layer's input to create a residual/skip connection
+
+        return x
 
 
 """
