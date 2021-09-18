@@ -140,7 +140,7 @@ class FFN(nn.Module):
                  post_norm_bool: bool = False,  # Apply layer normalization after the FFN
                  token_shift_config: Optional[List[Dict]] = None,  # Config for token shifting
                  inner_token_shift_config: Optional[List[Dict]] = None,  # Config for token shifting the inner features
-                 output_gate: Optional[Tuple[str, str]] = None,  # If, and how, to gate the block's output
+                 output_gate: Union[Tuple[str, str], None] = None,  # If, and how, to gate the block's output
                  add_residual: bool = True,  # Add skip connection
                  ):
         super().__init__()
@@ -323,7 +323,7 @@ class Attention(nn.Module):
                  rotate_qk_bool: bool = True,  # Apply a rotation to queries and keys, before their dot product
                  rotate_v_bool: bool = True,  # Apply a rotation to values
                  token_shift_config: Optional[List[Dict]] = None,  # Config for token shifting
-                 output_gate: Optional[Tuple[str, str]] = None,  # If, and how, to gate the block's output
+                 output_gate: Union[Tuple[str, str], None] = None,  # If, and how, to gate the block's output
                  add_residual: bool = True,  # Add skip connection
                  ):
         super().__init__()
