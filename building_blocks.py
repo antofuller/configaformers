@@ -138,9 +138,9 @@ class FFN(nn.Module):
                  dropout: float = 0.0,  # Features to dropout (between 0 and 1)
                  pre_norm_bool: bool = True,  # Apply layer normalization before the FFN
                  post_norm_bool: bool = False,  # Apply layer normalization after the FFN
-                 output_gate: Optional[Tuple[str, str]] = None,  # If, and how, to gate the block's output
                  token_shift_config: Optional[List[Dict]] = None,  # Config for token shifting
                  inner_token_shift_config: Optional[List[Dict]] = None,  # Config for token shifting the inner features
+                 output_gate: Optional[Tuple[str, str]] = None,  # If, and how, to gate the block's output
                  add_residual: bool = True,  # Add skip connection
                  ):
         super().__init__()
@@ -286,7 +286,7 @@ class FFN(nn.Module):
         x = self.proj_down(x)  # Project back down
 
         if self.output_gate:
-            x = self._apply_output_gate(x, residual)
+            x = self._apply_output_gate(_x=x, _residual=residual)
 
         if self.post_norm_bool:
             x = self.post_norm(x)  # Normalize the representations
@@ -313,7 +313,7 @@ working with very long sequences (i.e. in the thousands of tokens) - stick with 
 class Attention(nn.Module):
     def __init__(self,
                  dim: int,  # Input and output dimension size (typically it is d_model)
-                 attn_dim: int,  # Dimension size of attention (typically it is equal to dim)
+                 dim_attn: int,  # Dimension size of attention (typically it is equal to dim)
                  num_heads: int,  # Number of attention heads
                  previous_attention_bool: bool = False,  # Whether or not to re-use the last attention map
                  residual_attention_bool: bool = False,  # Whether or not to use an attention skip connection
@@ -323,6 +323,8 @@ class Attention(nn.Module):
                  rotate_qk_bool: bool = True,  # Apply a rotation to queries and keys, before their dot product
                  rotate_v_bool: bool = True,  # Apply a rotation to values
                  token_shift_config: Optional[List[Dict]] = None,  # Config for token shifting
+                 output_gate: Optional[Tuple[str, str]] = None,  # If, and how, to gate the block's output
+                 add_residual: bool = True,  # Add skip connection
                  ):
         super().__init__()
         """
@@ -333,8 +335,8 @@ class Attention(nn.Module):
         """
 
         # Config
-        dim_head = int(attn_dim / num_heads)
-        assert attn_dim % num_heads == 0, "The attention dimension size (attn_dim) must divide evenly into num_heads"
+        dim_head = int(dim_attn / num_heads)
+        assert dim_attn % num_heads == 0, "The attention dimension size (dim_attn) must divide evenly into num_heads"
 
         self.scale = dim_head ** -0.5
         self.num_heads = num_heads
@@ -343,21 +345,23 @@ class Attention(nn.Module):
         self.pre_norm_bool = pre_norm_bool
         self.post_norm_bool = post_norm_bool
         self.causal_mask_bool = causal_mask_bool
-        self.attn_dim = attn_dim
+        self.dim_attn = dim_attn
         self.rotate_qk_bool = rotate_qk_bool
         self.rotate_v_bool = rotate_v_bool
         self.token_shift_config = token_shift_config
+        self.output_gate = output_gate
+        self.add_residual = add_residual
 
         # Functions
         if self.previous_attention_bool:
             # If we use the attention pattern from the last attention layer, we don't need queries and keys
-            self.to_v = nn.Linear(dim, attn_dim, bias=False)
+            self.to_v = nn.Linear(dim, dim_attn, bias=False)
 
         else:
             # Standard attention layer that will calculate the attention pattern from queries and keys
-            self.to_q = nn.Linear(dim, attn_dim, bias=False)
-            self.to_k = nn.Linear(dim, attn_dim, bias=False)
-            self.to_v = nn.Linear(dim, attn_dim, bias=False)
+            self.to_q = nn.Linear(dim, dim_attn, bias=False)
+            self.to_k = nn.Linear(dim, dim_attn, bias=False)
+            self.to_v = nn.Linear(dim, dim_attn, bias=False)
 
         if self.pre_norm_bool:
             self.pre_norm = nn.LayerNorm(dim)
@@ -368,8 +372,11 @@ class Attention(nn.Module):
         if self.token_shift_config:
             self.shift_tokens = ShiftTokens(config=token_shift_config, dim=dim)
 
+        if self.output_gate:
+            self.final_gate = nn.Linear(dim, dim)
+
         self.attn_fn = F.softmax
-        self.to_out = nn.Linear(attn_dim, dim)
+        self.to_out = nn.Linear(dim_attn, dim)
 
     @typechecked
     def _calculate_attention_map(self,
@@ -452,6 +459,37 @@ class Attention(nn.Module):
         return _dots
 
     @typechecked
+    def _apply_output_gate(self, _x: TensorType["batch", "length", "dim"],
+                           _residual: Optional[TensorType["batch", "length", "dim"]],
+                           ) \
+            -> TensorType["batch", "length", "dim"]:
+
+        if self.output_gate[1] == "on_residual":
+            gate = self.final_gate(_residual)  # Linearly project the layer's input (aka residual)
+
+        elif self.output_gate[1] == "not_on_residual":
+            gate = self.final_gate(_x)  # Linearly project the hidden state
+
+        else:
+            raise "The second element of self.output_gate needs to be 'on_residual' or 'not_on_residual'"
+
+        if self.output_gate[0] == "none":
+            pass  # Don't apply any activation function to the gate
+
+        elif self.output_gate[0] == "gelu":
+            gate = F.gelu(gate)
+
+        elif self.output_gate[0] == "sigmoid":
+            gate = torch.sigmoid(gate)
+
+        else:
+            raise "The first element of self.output_gate needs to be 'none', 'gelu', or 'sigmoid'"
+
+        _x = gate * _x  # Take the sigmoid of r, and multiply it by x, to gate it
+
+        return _x
+
+    @typechecked
     def forward(self,
                 x: TensorType["batch", "length_queries", "dim"],  # Layer input
                 context: Optional[TensorType["batch", "length_keys", "dim"]] = None,  # Keys/values or memory
@@ -518,9 +556,13 @@ class Attention(nn.Module):
 
         x = self.to_out(x)  # Send through a final linear projection
 
+        if self.output_gate:
+            x = self._apply_output_gate(_x=x, _residual=residual)
+
         if self.post_norm_bool:
             x = self.post_norm(x)  # Normalize the representations
 
-        x = x + residual  # Add the layer's input to create a residual/skip connection
+        if self.add_residual:
+            x = x + residual  # Add the layer's input to create a residual/skip connection
 
         return x, attn_map, dots  # Return the output, attention map, and the dots (in case we need them later)
