@@ -231,7 +231,7 @@ class FFN(nn.Module):
 
     @typechecked
     def _apply_output_gate(self, _x: TensorType["batch", "length", "dim"],
-                           _residual: Optional[TensorType["batch", "length", "dim"]],
+                           _residual: TensorType["batch", "length", "dim"],
                            ) \
             -> TensorType["batch", "length", "dim"]:
 
@@ -460,7 +460,7 @@ class Attention(nn.Module):
 
     @typechecked
     def _apply_output_gate(self, _x: TensorType["batch", "length", "dim"],
-                           _residual: Optional[TensorType["batch", "length", "dim"]],
+                           _residual: TensorType["batch", "length", "dim"],
                            ) \
             -> TensorType["batch", "length", "dim"]:
 
