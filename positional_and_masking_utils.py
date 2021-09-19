@@ -133,6 +133,22 @@ class AttentionBiasMask(nn.Module):
         all_heads = torch.cat(all_heads, dim=0)
         self.attention_bias_mask = all_heads.cuda()
 
+    @staticmethod
+    def _get_slopes(heads):
+        # This implementation is taken 100% from lucidrains
+        # Explanation forthcoming
+        def get_slopes_power_of_2(n):
+            start = (2 ** (-2 ** -(math.log2(n) - 3)))
+            ratio = start
+            return [start * ratio ** i for i in range(n)]
+
+        if math.log2(heads).is_integer():
+            return get_slopes_power_of_2(heads)
+
+        closest_power_of_2 = 2 ** math.floor(math.log2(heads))
+        return get_slopes_power_of_2(closest_power_of_2) + get_slopes_power_of_2(2 * closest_power_of_2)[0::2][
+                                                           :heads - closest_power_of_2]
+
     def forward(self, qk_dots):
         b, h, i, j = qk_dots.shape
 
