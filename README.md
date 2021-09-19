@@ -45,12 +45,11 @@ Configs for attention blocks only:
 - *residual_attention_bool* : Setting this to true will add a skip connection to the attention map, before the softmax. The added attention map will be taken from the last time an attention map was calculated. The number of attention heads (num_heads) must be equal to num_heads from the last attention block. Otherwise, the model will try to add attention maps of different sizes. No bueno!
 - 
 ## Blocks to Add:
-1. gMLP
-2. Alibi position bias
-3. Gating attention output
+1. Alibi position bias
+
 
 ## Features To Add:
-1. Add basic training script
+1. Basic training script
 2. Incorporate MS DeepSpeed and/or TPU support
-3. Add automatic progressive training capability
-4. Add dataset management tools
+3. Automatic progressive training capability
+4. Dataset management tools

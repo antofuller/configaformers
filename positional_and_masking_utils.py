@@ -23,68 +23,120 @@ Positional utils
 """
 
 
-class Alibi(nn.Module):
-    def __init__(self, heads, max_length):
+class AttentionBiasMask(nn.Module):
+    def __init__(self, config_heads, num_heads, max_length, mask_precision="full"):
         super().__init__()
+        self.num_heads = num_heads
+        self.config_heads = config_heads
+        assert num_heads == len(
+            self.config_heads), f"You configured {len(self.config_heads)} attention head biases/masks, but there are {num_heads} heads."
+
+        # Build bidirectional linear biases template
+        template = []
+        for i in range(max_length):
+            template.append(torch.LongTensor([x for x in range(0 - i, max_length - i)]).view(1, -1).abs())
+        template = -torch.cat(template, dim=0)
+
         """
-        This builds the matrix seen on the right side of Figure 3 - https://arxiv.org/pdf/2108.12409.pdf . It is a 
-        relative position bias (since it biases the attention pattern based on the relative positions of the inputs). 
-        Right now, I only have an encoder implementation of this matrix (which isn't mentioned in the paper). The causal
-        version will be added shortly; it's actually just the lower triangle portion.
-
-        From the paper, Alibi seems to perform on par with RoPE, but it can generalize to longer sequences not seen
-        during training. RoPE cannot do that. 
+        If max_length is 5, it would look like: 
+        [ 0, -1, -2, -3, -4, -5],
+        [-1,  0, -1, -2, -3, -4],
+        [-2, -1,  0, -1, -2, -3],
+        [-3, -2, -1,  0, -1, -2],
+        [-4, -3, -2, -1,  0, -1],
+        [-5, -4, -3, -2, -1,  0]
+        _back (from below) refers to the biases in the bottom-left triangle, and _fwd refers to the upper-right triangle
         """
 
-        self.heads = heads
+        # Build fwd and back masks that will be used to manipulate the template
+        fwd_mask = torch.ones_like(template).bool()
+        fwd_mask = ~fwd_mask.tril()
 
-        rows = []
-        for i in range(max_length):  # build the full Alibi relative position bias matrix
-            rows.append(torch.LongTensor([x for x in range(0 - i, max_length - i)]).view(1, -1).abs())
+        """
+        fwd_mask would look like this:
+        [False,  True,  True,  True,  True,  True],
+        [False, False,  True,  True,  True,  True],
+        [False, False, False,  True,  True,  True],
+        [False, False, False, False,  True,  True],
+        [False, False, False, False, False,  True],
+        [False, False, False, False, False, False]
+        """
 
-        # This implementation alternates between upper triangular and lower triangular biases. Using the full matrix
-        # doesn't seem to work as well - likely since the forward and backward biases would be identical (i.e. attention
-        # wouldn't be able to tell the difference between a token X spots after or X spots before). However, the lead
-        # author of Alibi claims that using different biases on forward vs backward positions may work.
+        back_mask = torch.ones_like(template).bool()
+        back_mask = ~back_mask.triu()
 
-        lower_tri_rows = -torch.cat(rows, 0).tril()
-        upper_tri_rows = -torch.cat(rows, 0).triu()
+        """
+        back_mask would look like this:
+        [False, False, False, False, False, False],
+        [ True, False, False, False, False, False],
+        [ True,  True, False, False, False, False],
+        [ True,  True,  True, False, False, False],
+        [ True,  True,  True,  True, False, False],
+        [ True,  True,  True,  True,  True, False]
+        """
 
-        lower_tri_rows = rearrange(lower_tri_rows, 'i j -> () i j')
-        upper_tri_rows = rearrange(upper_tri_rows, 'i j -> () i j')
-        slopes = self._get_slopes(heads=int(heads / 2))
+        if (mask_precision == "full") or (mask_precision == "Full"):
+            dummy_tensor = torch.Tensor([1.0]).float()
+            mask_value = max_neg_value(dummy_tensor)
+            template = template.float()
+        elif (mask_precision == "half") or (mask_precision == "Half"):
+            dummy_tensor = torch.Tensor([1.0]).half()
+            mask_value = max_neg_value(dummy_tensor)
+            template = template.half()
+        else:
+            print(f"{mask_precision} must be 'full' or 'half'")
 
-        all_rows = []
-        for h_ in range(int(heads / 2)):
-            all_rows.append(lower_tri_rows * slopes[h_])
-            all_rows.append(upper_tri_rows * slopes[h_])
+        slopes = self._get_slopes(heads=num_heads)  # Get head slopes
 
-        # The resultant bias applies the Alibi position bias looking forward to half of the heads, and backwards to the
-        # other half. Since for each head, only 1 direction contains positional information, you should probably use
-        # RoPE along with Alibi, to give the opposite direction some positional information.
+        all_heads = []
+        for i_head, head_config in enumerate(self.config_heads):
+            _back, _fwd = head_config  # The bias/mask setting looking forward, or back (at each token)
 
-        self.bias = torch.cat(all_rows, dim=0).cuda()  # shape (heads, max_length, max_length)
+            head_bias = template.clone()
 
-    @staticmethod
-    def _get_slopes(heads):
-        # This implementation is taken 100% from lucidrains
-        # Explanation forthcoming
-        def get_slopes_power_of_2(n):
-            start = (2 ** (-2 ** -(math.log2(n) - 3)))
-            ratio = start
-            return [start * ratio ** i for i in range(n)]
+            # First, adjust _back biases based on this head_config
+            if (_back == "none") or (_back == "None"):
+                # Zero out all backward biases
+                head_bias = head_bias.triu()
+            elif type(_back) == float:
+                # Add an offset to all backward biases
+                back_offset = back_mask * _back
+                head_bias += back_offset
+            elif (_back == "linear") or (_back == "Linear"):
+                pass  # Keep standard/linear backward biases
 
-        if math.log2(heads).is_integer():
-            return get_slopes_power_of_2(heads)
+            # Now, adjust _fwd biases based on this head_config
+            if (_fwd == "none") or (_fwd == "None"):
+                # Zero out all forward biases
+                head_bias = head_bias.tril()
+            elif type(_fwd) == float:
+                # Add an offset to all forward biases
+                fwd_offset = fwd_mask * _fwd
+                head_bias += fwd_offset
+            elif (_fwd == "linear") or (_fwd == "Linear"):
+                pass  # Keep standard/linear forward biases
 
-        closest_power_of_2 = 2 ** math.floor(math.log2(heads))
-        return get_slopes_power_of_2(closest_power_of_2) + get_slopes_power_of_2(2 * closest_power_of_2)[0::2][
-                                                           :heads - closest_power_of_2]
+            head_bias *= slopes[i_head]  # Apply slope *before* masking
+
+            if (_fwd == "mask") or (_fwd == "Mask"):
+                # Mask all forward positions (causal mask)
+                head_bias.masked_fill_(fwd_mask, mask_value)
+            if (_back == "mask") or (_back == "Mask"):
+                # Mask all backward positions (anti-causal mask)
+                head_bias.masked_fill_(back_mask, mask_value)
+
+            if ((_fwd == "mask") or (_fwd == "Mask")) and ((_back == "mask") or (_back == "Mask")):
+                print(f"YOU ARE MASKING OUT BOTH FORWARD AND BACKWARD DIRECTIONS!!!")
+
+            all_heads.append(head_bias.view(1, max_length, max_length))
+
+        all_heads = torch.cat(all_heads, dim=0)
+        self.attention_bias_mask = all_heads.cuda()
 
     def forward(self, qk_dots):
         b, h, i, j = qk_dots.shape
 
-        bias = repeat(self.bias, 'h i j -> b h i j', b=b)  # repeat over the batch dimension
+        bias = repeat(self.attention_bias_mask, 'h i j -> b h i j', b=b)  # repeat over the batch dimension
         bias = bias[:, :, :i, :j].view(qk_dots.shape)  # trim the bias tensor such that it matches the shape of qk_dots
 
         return qk_dots + bias  # this adds them together, creating the relative positional bias
