@@ -20,6 +20,11 @@ def max_neg_value(tensor):
     return -torch.finfo(tensor.dtype).max
 
 
+class ReluSquared(nn.Module):
+    def forward(self, _x):
+        return F.relu(_x) ** 2
+
+
 @typechecked
 def shift(t: TensorType["batch", "length", "dim"],  # The tensor that will be shifted
           amount: int,  # The amount of time-steps to shift by
