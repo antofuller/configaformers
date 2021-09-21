@@ -24,7 +24,7 @@ Positional utils
 
 
 class AttentionBiasMask(nn.Module):
-    def __init__(self, config_heads, num_heads, max_length, mask_precision="full"):
+    def __init__(self, config_heads, num_heads, max_length, mask_precision="half"):
         super().__init__()
         self.num_heads = num_heads
         self.config_heads = config_heads
