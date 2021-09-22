@@ -91,7 +91,6 @@ class Transformer(nn.Module):
 
         # Input utils
         self.token_emb = nn.Embedding(self.vocab_size, self.input_emb_size)
-        self.rotary_pos_emb = RotaryEmbedding(self.dim_rope)
 
         if self.input_emb_size != self.dim_model:
             self.proj_input = nn.Linear(self.input_emb_size, self.dim_model)
@@ -103,7 +102,6 @@ class Transformer(nn.Module):
         if self.input_emb_size != self.dim_model:
             x = self.proj_input(x).view(bsz, seq_len, self.dim_model)
 
-        rotary_pos_emb_init = self.rotary_pos_emb(seq_len)
         attn_map = None
         dots = None
 
@@ -111,15 +109,9 @@ class Transformer(nn.Module):
             layer_config = self.config['layers'][layer_id]
 
             if layer_config['type'] == "Attention":
-                if layer_config['rotate_qk_bool'] or layer_config['rotate_v_bool']:
-                    rotary_pos_emb = rotary_pos_emb_init
-                else:
-                    rotary_pos_emb = None
-
                 x, attn_map, dots = layer_func[0](x=x,
                                                   previous_attn_map=attn_map,
                                                   previous_attn_dots=dots,
-                                                  rotary_pos_emb=rotary_pos_emb,
                                                   )
 
             elif layer_config['type'] == "FFN":

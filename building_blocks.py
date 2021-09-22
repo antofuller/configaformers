@@ -7,6 +7,7 @@ import math
 from torchtyping import TensorType, patch_typeguard
 from typeguard import typechecked
 from typing import Optional, Tuple, Union, List, Dict
+from positional_and_masking_utils import RotaryEmbedding
 
 
 patch_typeguard()
@@ -325,9 +326,9 @@ class Attention(nn.Module):
                  residual_attention_bool: bool = False,  # Whether or not to use an attention skip connection
                  pre_norm_bool: bool = True,  # Apply layer normalization before attention
                  post_norm_bool: bool = False,  # Apply layer normalization after attention
-                 # causal_mask_bool: bool = True,  # Apply a causal mask (used for auto-regressive models)
                  rotate_qk_bool: bool = True,  # Apply a rotation to queries and keys, before their dot product
                  rotate_v_bool: bool = True,  # Apply a rotation to values
+                 dim_rope: Optional[int] = None,  # Number of features to rotate
                  token_shift_config: Optional[List[Dict]] = None,  # Config for token shifting
                  output_gate: Optional[Tuple[str, str]] = None,  # If, and how, to gate the block's output
                  add_residual: bool = True,  # Add skip connection
@@ -350,13 +351,13 @@ class Attention(nn.Module):
         self.residual_attention_bool = residual_attention_bool
         self.pre_norm_bool = pre_norm_bool
         self.post_norm_bool = post_norm_bool
-        # self.causal_mask_bool = causal_mask_bool
         self.dim_attn = dim_attn
         self.rotate_qk_bool = rotate_qk_bool
         self.rotate_v_bool = rotate_v_bool
         self.token_shift_config = token_shift_config
         self.output_gate = output_gate
         self.add_residual = add_residual
+        self.dim_rope = dim_rope
 
         # Functions
         if self.previous_attention_bool:
@@ -380,6 +381,11 @@ class Attention(nn.Module):
 
         if self.output_gate:
             self.final_gate = nn.Linear(dim, dim)
+
+        if self.dim_rope:
+            assert self.rotate_qk_bool or self.rotate_v_bool, "rotate_qk_bool or rotate_v_bool should be true, if " \
+                                                                "dim_rope is given"
+            self.rotary_pos_emb = RotaryEmbedding(self.dim_rope)
 
         self.attn_fn = F.softmax
         self.to_out = nn.Linear(dim_attn, dim)
@@ -444,31 +450,6 @@ class Attention(nn.Module):
 
         return _v
 
-    # @typechecked
-    # def _apply_causal_mask(self,
-    #                        _dots: TensorType["batch", "num_heads", "length_queries", "length_keys"],
-    #                        ) \
-    #         -> TensorType["batch", "num_heads", "length_queries", "length_keys"]:
-    #
-    #     # This is Lucid's implementation
-    #     # Creating the mask at model initialization is faster (0.2 - 0.5% in my experiments) but I haven't
-    #     # found a way to keep the flexibility of this method, with respect to device and dtype
-    #
-    #     mask_value = max_neg_value(_dots)  # the maximum negative number PyTorch allows, for this dtype
-    #     i, j = _dots.shape[-2:]  # since the dots have shape (batch_size, num_heads, q_length, kv_length)
-    #     r = torch.arange(i, device=_dots.device)  # count up to the number of queries
-    #     mask = rearrange(r, 'i -> () () i ()') < rearrange(r, 'j -> () () () j')  # creates a matrix that is
-    #     # true iff the row number is less than the column number (so it's true in the upper triangle)
-    #
-    #     if i != j:
-    #         # This is only required when the query length is not equal to the key/value length, for example,
-    #         # when we are generating using a key/value cache (and the query length is 1)
-    #         mask = F.pad(mask, (j - i, 0), value=False)  # pad j - i columns to the left of the mask with false
-    #
-    #     _dots.masked_fill_(mask, mask_value)  # replace the dots value with negative inf, where mask is true
-    #
-    #     return _dots
-
     @typechecked
     def _apply_output_gate(self, _x: TensorType["batch", "length", "dim"],
                            _residual: TensorType["batch", "length", "dim"],
@@ -504,10 +485,8 @@ class Attention(nn.Module):
     def forward(self,
                 x: TensorType["batch", "length_queries", "dim"],  # Layer input
                 context: Optional[TensorType["batch", "length_keys", "dim"]] = None,  # Keys/values or memory
-                # positional_bias_fn=None,  # Positional bias which is added to dots
                 previous_attn_map: Optional[TensorType["batch", "num_heads", "length_queries", "length_keys"]] = None,
                 previous_attn_dots: Optional[TensorType["batch", "num_heads", "length_queries", "length_keys"]] = None,
-                rotary_pos_emb: Optional[TensorType[1, 1, "max_length", "rope_dim"]] = None,  # RoPE embeddings
                 ) \
             -> Tuple[
                 TensorType["batch", "length_queries", "dim"],  # Layer output (hidden states)
@@ -516,6 +495,11 @@ class Attention(nn.Module):
             ]:
 
         residual = x  # Store input
+
+        if self.dim_rope:
+            rotary_pos_emb = self.rotary_pos_emb(x.shape[1])
+        else:
+            rotary_pos_emb = None
 
         if self.pre_norm_bool:
             x = self.pre_norm(x)  # Normalize the representations before attention
@@ -548,12 +532,6 @@ class Attention(nn.Module):
 
             if self.residual_attention_bool:
                 dots = dots + previous_attn_dots  # Add attention dots residual connection
-
-            # if exists(positional_bias_fn):
-            #     dots = positional_bias_fn(dots)  # Apply a positional bias to the attention map
-
-            # if self.causal_mask_bool:
-            #     dots = self._apply_causal_mask(_dots=dots)
 
             dots = self.biasing_and_masking(dots)  # Apply biasing and/or masking
 
