@@ -52,6 +52,7 @@ Configs for attention blocks only:
 
 ## Blocks to Add:
 1. Self-gated queries and keys with sigmoid
+2. Token shifting interaction (either add or multiply, rather than slicing representations)
 
 ## Features To Add:
 1. Check config upon model init (like num_heads when re-using attention maps)
