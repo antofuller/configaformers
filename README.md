@@ -50,6 +50,15 @@ Configs for attention blocks only:
 - *rotate_qk_bool*: Apply a rotation to queries and keys, before their dot product. Defaults to true. 
 - *rotate_v_bool*: Apply a rotation to values. Defaults to true.
 
+Configs for feedforward blocks only:
+- *ff_mult* : Hidden layer dimension size multiplier. Defaults to 4.
+- *num_projections* : Number of projections which are multiplied by each other, element-wise.
+- *num_gelu* : Number of projections to send through a GELU activation.
+- *dropout* : Fraction of intermediate features to dropout (between 0 and 1). Defaults to 0.
+- *inner_token_shift_config* : Token shifting on the intermediate hidden state in the FFN. See below for the token shifting config.
+
+There are more comments in building_blocks.py - I'm not sure how I will organize all documentation yet.
+
 ## Blocks to Add:
 1. Self-gated queries and keys with sigmoid
 2. Token shifting interaction (either add or multiply, rather than slicing representations)

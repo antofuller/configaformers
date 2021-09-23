@@ -94,7 +94,8 @@ class Classifier(nn.Module):
         For knowledge distillation, or contrastive learning, you can output an embedding via num_classes=768, 1024, etc.
         
         Right now, only a vanilla FFN is available. We use an FFN before the final linear output to limit the harm each
-        classifier does to the backbone model.
+        classifier does to the backbone model, since the final layers of a network will specialize to the (pre)training 
+        task, and as a result, not be as general.
         """
 
         inner_dim = int(dim * ff_mult)
