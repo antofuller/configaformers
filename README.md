@@ -54,7 +54,8 @@ Configs for attention blocks only:
 1. Self-gated queries and keys with sigmoid
 
 ## Features To Add:
-1. Basic training script
-2. Incorporate MS DeepSpeed and/or TPU support
-3. Automatic progressive training capability
-4. Dataset management tools
+1. Check config upon model init (like num_heads when re-using attention maps)
+2. Basic training script
+3. Incorporate MS DeepSpeed and/or TPU support
+4. Automatic progressive training capability
+5. Dataset management tools

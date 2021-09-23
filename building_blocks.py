@@ -22,6 +22,7 @@ def max_neg_value(tensor):
 
 
 class ReluSquared(nn.Module):
+    # Not used yet
     def forward(self, _x):
         return F.relu(_x) ** 2
 
@@ -92,7 +93,8 @@ class Classifier(nn.Module):
         size - where we have 1 class per token. For binary classification (like ELECTRA) we can use num_classes = 2. 
         For knowledge distillation, or contrastive learning, you can output an embedding via num_classes=768, 1024, etc.
         
-        Right now, only a vanilla FFN is available.
+        Right now, only a vanilla FFN is available. We use an FFN before the final linear output to limit the harm each
+        classifier does to the backbone model.
         """
 
         inner_dim = int(dim * ff_mult)
