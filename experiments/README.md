@@ -5,11 +5,11 @@ Loss values for every single token, for every config, will be released to suppor
 
 The two figures below are from the baseline/default model architecture with dim_model=768, and 12 transformer layers.  
 
-<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/baseline_position.PNG" width="800" height="400">
+<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/baseline_position.PNG">
 
 Above, we plot context length (x-axis) vs loss (y-axis). Across 10 different training points (every 50M tokens). The red-to-blue colour transition reflects the first-to-last batch of 50M tokens. 
 
-<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/baseline_vocab.PNG" width="800" height="400">
+<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/baseline_vocab.PNG">
 
 Above, we plot vocabulary bucket (x-axis) vs loss (y-axis). Across 10 different training points (every 50M tokens). The red-to-blue colour transition reflects the first-to-last batch of 50M tokens. The vocabulary buckets (27 in total) were created by sorting each token by occurrence, in our dataset, and making a new bucket every 20 million tokens (cumulatively). As a result, the first 5 buckets only contain a single token. 
 
