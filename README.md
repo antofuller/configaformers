@@ -39,6 +39,7 @@ Configs for all block types:
 - *token_shift_config* : Apply a token shift before the block's main operation. If pre_norm_bool is true, then the token shift will be performed after the layer norm. See below for details.
 - *output_gate* :  Tuple of strings. The first element should be the activation type - one of 'none', 'gelu', or 'sigmoid'. The second element should be either 'on_residual' (uses the blocks input as the GLU input) or 'not_on_residual' (uses the current representation as the GLU input)
 - *add_residual* : Add a skip connection - this should always be true. Defaults to true.
+
 Configs for attention blocks only:
 - *dim_attn* : The dimension for the attention mechanism. It typically is equal to dim_model, and must be evenly divisible by num_heads. The head dimension will be equal to attn_dim divided by num_heads.
 - *num_heads* : The number of heads, in the multi-headed attention mechanism. The less num_heads, the greater each head size will be, for a constant attn_dim.
