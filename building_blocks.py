@@ -319,9 +319,9 @@ working with very long sequences (i.e. in the thousands of tokens) - stick with 
 class Attention(nn.Module):
     def __init__(self,
                  dim: int,  # Input and output dimension size (typically it is d_model)
-                 dim_attn: int,  # Dimension size of attention (typically it is equal to dim)
                  num_heads: int,  # Number of attention heads
                  bias_mask_config: List[List],  # Attention biasing and/or masking config
+                 dim_attn: Optional[int] = None,  # Dimension size of attention (typically it is equal to dim)
                  previous_attention_bool: bool = False,  # Whether or not to re-use the last attention map
                  residual_attention_bool: bool = False,  # Whether or not to use an attention skip connection
                  pre_norm_bool: bool = True,  # Apply layer normalization before attention
@@ -351,13 +351,25 @@ class Attention(nn.Module):
         self.residual_attention_bool = residual_attention_bool
         self.pre_norm_bool = pre_norm_bool
         self.post_norm_bool = post_norm_bool
-        self.dim_attn = dim_attn
+
+        if dim_attn:
+            self.dim_attn = dim_attn
+        else:
+            # If dim_attn is not given, just use dim_model
+            self.dim_attn = dim
+
         self.rotate_qk_bool = rotate_qk_bool
         self.rotate_v_bool = rotate_v_bool
         self.token_shift_config = token_shift_config
         self.output_gate = output_gate
         self.add_residual = add_residual
-        self.dim_rope = dim_rope
+
+        if self.rotate_qk_bool or self.rotate_v_bool:
+            if dim_rope:
+                self.dim_rope = dim_rope
+            else:
+                # If qk or v needs to be rotated, but no dim_rope is given, use a quarter of the attention head size
+                self.dim_rope = int(dim_head/4)
 
         # Functions
         if self.previous_attention_bool:
@@ -382,9 +394,7 @@ class Attention(nn.Module):
         if self.output_gate:
             self.final_gate = nn.Linear(dim, dim)
 
-        if self.dim_rope:
-            assert self.rotate_qk_bool or self.rotate_v_bool, "rotate_qk_bool or rotate_v_bool should be true, if " \
-                                                                "dim_rope is given"
+        if self.rotate_qk_bool or self.rotate_v_bool:
             self.rotary_pos_emb = RotaryEmbedding(self.dim_rope)
 
         self.attn_fn = F.softmax

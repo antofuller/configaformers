@@ -1,6 +1,5 @@
 import torch.nn as nn
 from building_blocks import FFN, Attention, Classifier
-from positional_and_masking_utils import RotaryEmbedding
 import torch
 import inspect
 
@@ -53,12 +52,11 @@ class Transformer(nn.Module):
     def __init__(self, config):
         super().__init__()
 
-        # Config
+        # Model config
         self.config = config
         self.dim_model = config['dim_model']
         self.vocab_size = config['vocab_size']
         self.num_layers = len(config['layers'])
-        self.dim_rope = config['dim_rope']
 
         if 'input_emb_size' not in config:
             self.input_emb_size = self.dim_model
@@ -100,10 +98,11 @@ class Transformer(nn.Module):
         seq_len = seq_ids.shape[1]
         x = self.token_emb(seq_ids).view(bsz, seq_len, self.input_emb_size)
         if self.input_emb_size != self.dim_model:
+            # Only needed if the token embedding size is different from dim_model
             x = self.proj_input(x).view(bsz, seq_len, self.dim_model)
 
-        attn_map = None
-        dots = None
+        attn_map = None  # No attention has occurred yet
+        dots = None  # No attention has occurred yet
 
         for layer_id, layer_func in enumerate(self.layers):
             layer_config = self.config['layers'][layer_id]
@@ -117,8 +116,14 @@ class Transformer(nn.Module):
             elif layer_config['type'] == "FFN":
                 x = layer_func[0](x=x)
 
-        output_list = []
-        for classifier_fn in self.classifiers:
-            output_list.append(classifier_fn[0](x))
+        if len(self.config['classifiers']) > 0:
+            # If we have classifiers, use them here
+            output_list = []
+            for classifier_fn in self.classifiers:
+                output_list.append(classifier_fn[0](x))
 
-        return output_list
+            return output_list
+
+        else:
+            # If the model has no classifiers, output the final hidden states
+            return x

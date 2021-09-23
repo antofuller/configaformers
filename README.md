@@ -1,7 +1,7 @@
 # *configaformer*
-A PyTorch library for highly configurable transformers - easing model architecture search and experimentation. Heavily inspired by https://github.com/lucidrains/x-transformers
+A python library for highly configurable transformers - easing model architecture search and experimentation. Heavily inspired by https://github.com/lucidrains/x-transformers
 
-The implementation prioritizes flexibility and readability over speed.
+The implementation prioritizes flexibility and readability over speed (e.g. time per step).
 
 The aim of this library is not to search for SOTA architectures - if you only care about accuracy use a massive transformer (maybe with RoPE and GEGLU). Rather, this library attempts to facilitate searching for transformer architectures that meet your, task-specific, accuracy-memory-speed requirements. It's also a great way to build intuition about various building blocks by enabling rapid experimentation. 
 ## Usage
