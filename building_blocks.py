@@ -46,9 +46,11 @@ def shift(t: TensorType["batch", "length", "dim"],  # The tensor that will be sh
 
 
 class ShiftTokens(nn.Module):
-    def __init__(self, config, dim):
+    def __init__(self, config, dim, shift_type="slice", act="none"):
         super().__init__()
         self.config = config
+        self.shift_type = shift_type
+        self.act = act
         sum_features = sum([x['features'] for x in config])  # Add up the number of features to ensure the sum is equal
         # to the total number of features
 
@@ -61,7 +63,7 @@ class ShiftTokens(nn.Module):
             -> TensorType["batch", "length", "dim"]:
 
         splitted = []
-        feature_position = 0  # keep track of feature position during for loop
+        feature_position = 0  # Keep track of feature position during for loop
         for idx in range(len(self.config)):
             features_amt = self.config[idx]['features']  # Number of features to grab, for this chunk
             shift_amt = self.config[idx]['shift']  # Number of sequence positions to shift by
@@ -71,12 +73,29 @@ class ShiftTokens(nn.Module):
 
             chunk = _x[:, :, start_idx:end_idx]  # Select features and remove them from the input tensor
             chunk = shift(chunk, shift_amt, mask)  # Perform the shift operation
-            splitted.append(chunk)  # Store them in a list
 
+            if self.act == "sigmoid":
+                chunk = torch.sigmoid(chunk)
+
+            splitted.append(chunk)  # Store them in a list
             feature_position += features_amt  # Update the feature position
 
-        # Finally, piece the chunks back together (with some of the chunks shifted), and return
-        return torch.cat(splitted, dim=-1)
+        if self.shift_type == "slice":
+            # Piece the slices back together (with some of the chunks shifted)
+            _x = torch.cat(splitted, dim=-1)
+
+        elif self.shift_type == "add":
+            # Piece the slices back together, then add it to the input _x
+            _x = torch.cat(splitted, dim=-1) + _x
+
+        elif self.shift_type == "mult":
+            # Piece the slices back together, then multiply it to the input _x
+            _x = torch.cat(splitted, dim=-1) * _x
+
+        else:
+            print(f"shift_type: {self.shift_type} is not available")
+
+        return _x
 
 
 class Classifier(nn.Module):

@@ -3,7 +3,7 @@ We will start with training a language model (LM) with a sequence length of 1024
 
 Loss values for every single token, for every config, will be released to support a thorough analysis of how various model architectures learn. 
 
-The two figures below are from the baseline/default model architecture with dim_model=768, and 12 transformer layers.  
+The two figures below are from the baseline/default model architecture with dim_model=768, and 12 transformer layers (128M non-embedding params).  
 
 <img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/baseline_position.PNG">
 
