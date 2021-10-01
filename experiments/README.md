@@ -24,6 +24,14 @@ Groups of token shifting configurations:
 2. Model scaling (width, depth)
 3. Different configurations at different depths
 
+<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/768_shifting.PNG">
+
+Above, we plot training progress in millions of tokens (x-axis) vs loss (y-axis). The shift list is the token shifting strategy -> [num_features @ t-n ... num_features @ t-1, num_features @ t]. For example, shift=[128, 256, 384] means 128 features from t-2, and 256 features from t-1 are inserted into t's representation at each layer - finally, 384 features from t are kept. Token shifting is essentially a convolution. 
+
+It seems that token shifting converges faster for all settings. Next, we can see (while squinting) that blue is no better than black (baseline) at 500M tokens. Comparing blue to orange we can conclude that blue likely didn't keep enough features from t (256 vs 356 for orange). Lastly, red is the clear winner. We can safely conclude that token shifting helps, but too much shifting hurts, or at least offsets the advantages. These findings align with rumors from EleutherAI's discord. 
+
+Future work may include finding the optimal shifting config - which will likely depend on model shape and vocabulary (more shifting will likely help with smaller vocabs, like character-level).
+
 ## Rotary Position Embeddings (RoPE)
 
 Groups of RoPE configurations:
