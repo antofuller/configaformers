@@ -392,6 +392,8 @@ class Attention(nn.Module):
             else:
                 # If qk or v needs to be rotated, but no dim_rope is given, use a quarter of the attention head size
                 self.dim_rope = int(dim_head/4)
+        else:
+            self.dim_rope = None
 
         # Functions
         if self.previous_attention_bool:
