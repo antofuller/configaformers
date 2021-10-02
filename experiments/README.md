@@ -46,7 +46,7 @@ Below are the loss ratios (averaged over the last 10M tokens) of tokens that sta
 | Green  | 1.3297  | None
 | Purple  | 1.3336  | [128, 384, 512]
 
-The two lowest loss ratios are for the two models that did not use token shifting, implying that token shifting improves sub-word accuracy more than it improves the accuracy of tokens that start a new word. This intuitively makes sense because token shifting allows the model to incorporate information from near-by tokens via a mechanism that is completely separate from attention. And, near-by information is plausibly more important for sub-word tokens, than for tokens that start off a new word.
+The two lowest loss ratios are for the two models that did not use token shifting, implying that token shifting improves sub-word accuracy more than it improves the accuracy of tokens that start a new word. This intuitively makes sense because token shifting allows the model to incorporate information from near-by tokens via a mechanism that is completely separate from attention. And near-by information is plausibly more important for sub-word tokens than for tokens that start off a new word.
 
 ## Rotary Position Embeddings (RoPE)
 
