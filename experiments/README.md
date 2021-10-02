@@ -17,12 +17,9 @@ Above, we plot vocabulary bucket (x-axis) vs loss (y-axis). Across 10 different 
 
 No surprise here, more common tokens are easier to predict by the model. We can also see that more common tokens are learned first, and most of the improvements towards the end of training occur in our least common tokens. 
 
-## Token Shifting
+## Token Shifting w/ RoPE
 
-Groups of token shifting configurations:
-1. Amount of tokens, number of tokens, skipping tokens, shift location, etc.
-2. Model scaling (width, depth)
-3. Different configurations at different depths
+This section will explore various token shifting configurations while using rotary positional embeddings (RoPE). The number of features rotated in the attention mechanism will be 1/4 the attention head dimension. In our case this will be 64/4 = 16 features to rotate. 
 
 <img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/768_shifting.PNG">
 
@@ -48,11 +45,8 @@ Below are the loss ratios (averaged over the last 10M tokens) of tokens that sta
 
 The two lowest loss ratios are for the two models that did not use token shifting, <b>implying that token shifting improves sub-word accuracy more than it improves the accuracy of tokens that start a new word.</b> This intuitively makes sense because token shifting allows the model to incorporate information from near-by tokens via a mechanism that is completely separate from attention. And near-by information is plausibly more important for sub-word tokens than for tokens that start off a new word.
 
-## Rotary Position Embeddings (RoPE)
+## Token Shifting w/ Alibi
 
-Groups of RoPE configurations:
-1. Amount of features to rotate, qk vs v rotations, etc.
-2. Model scaling (width, depth)
-3. Different configurations at different depths
+Similar to the previous section, we will investigate various token shifting configurations while using the Alibi positional encoding strategy. Alibi is a new position encoding technique that is very simple, intuitive, and is reported to perform on par with RoPE. We use Alibi's default parameters unless stated otherwise.
 
 ## Etc...
