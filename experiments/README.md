@@ -26,7 +26,7 @@ Groups of token shifting configurations:
 
 <img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/768_shifting.PNG">
 
-Above, we plot training progress in millions of tokens (x-axis) vs loss (y-axis). The shift list is the token shifting strategy -> [num_features @ t-n, ..., num_features @ t-1, num_features @ t]. For example, shift=[128, 256, 384] means 128 features from t-2, and 256 features from t-1 are inserted into t's representation at each layer - finally, 384 features from t are kept. <b>Token shifting is essentially a convolution.</b> 
+Above, we plot training progress in millions of tokens (x-axis) vs loss (y-axis). The shift list is the token shifting strategy -> [num_features @ t-n, ..., num_features @ t-1, num_features @ t]. For example, shift=[128, 256, 384] means 128 features from t-2, and 256 features from t-1 are inserted into t's representation at each layer - finally, 384 features from t are kept.
 
 It seems that token shifting converges faster for all settings. Next, we can see (while squinting) that blue is no better than black (baseline) at 500M tokens. Comparing blue to orange we can conclude that blue likely didn't keep enough features from t (256 vs 356 for orange). Lastly, red is the clear winner. We can safely conclude that token shifting helps, but too much shifting hurts, or at least offsets the advantages. These findings align with rumors from EleutherAI's discord. 
 
@@ -39,14 +39,14 @@ Below are the loss ratios (averaged over the last 10M tokens) of tokens that sta
 
 | Colour  | Loss Ratio | Shift Config |
 | ------------- | ------------- | ------------- |
-| Black  | 1.3288  | None
+| Black  | <b>1.3288</b>  | None
 | Red  | 1.3363  | [384, 384]
 | Blue  | 1.3310  | [256, 256, 256]
 | Orange  | 1.3404  | [128, 256, 384]
-| Green  | 1.3297  | None
+| Green  | <b>1.3297</b>  | None
 | Purple  | 1.3336  | [128, 384, 512]
 
-The two lowest loss ratios are for the two models that did not use token shifting, implying that token shifting improves sub-word accuracy more than it improves the accuracy of tokens that start a new word. This intuitively makes sense because token shifting allows the model to incorporate information from near-by tokens via a mechanism that is completely separate from attention. And near-by information is plausibly more important for sub-word tokens than for tokens that start off a new word.
+The two lowest loss ratios are for the two models that did not use token shifting, <b>implying that token shifting improves sub-word accuracy more than it improves the accuracy of tokens that start a new word.</b> This intuitively makes sense because token shifting allows the model to incorporate information from near-by tokens via a mechanism that is completely separate from attention. And near-by information is plausibly more important for sub-word tokens than for tokens that start off a new word.
 
 ## Rotary Position Embeddings (RoPE)
 
