@@ -1,11 +1,11 @@
 # *configaformer*
 A python library for highly configurable transformers - easing model architecture search and experimentation. Heavily inspired by https://github.com/lucidrains/x-transformers
 
-The implementation prioritizes flexibility and readability over speed (e.g. time per step).
+The implementation prioritizes flexibility and readability over speed (e.i. time per step).
 
 The aim of this library is not to search for SOTA architectures - if you only care about accuracy use a massive transformer (maybe with RoPE and GEGLU). Rather, this library attempts to facilitate searching for transformer architectures that meet your, task-specific, accuracy-memory-speed requirements. It's also a great way to build intuition about various building blocks by enabling rapid experimentation. 
 ## Usage
-Build your transformer by creating a *config* that contains both entire-model and layer-specific features. Let's start with an example:
+Build your transformer by creating a *config* that contains both entire-model and layer-specific settings. Let's start with an example:
 ```
 config = {'dim_model': 768,
           'vocab_size': 50257,
