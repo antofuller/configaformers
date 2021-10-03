@@ -25,13 +25,13 @@ Token shifting essentially slices up each hidden state (along the feature dimens
 
 <img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/token_shifting.png">
 
-Above, we have 3 tokens ('soccer', 'is', and 'better') which are each converted into an embedding of size 100 (these are the features representing the corresponding token). The token shifting operation is then performed, which first slices the embeddings, then shifts them over 1 position. Using our notation, this would look like shift=[40, 60]. So, of the 100 features, 60 are kept, and 40 are replaced by 40 features from the previous position (if there is no previous token, the features will be padded with zeros). This token shifting operation is essentially a convolution, and has been used in computer vision publications. For NLP, this simple technique hasn't been published but EleutherAI's discord chat recommends it. 
+Above, we have 3 tokens ('soccer', 'is', and 'better') which are each converted into an embedding of size 100 (these are the features representing the corresponding token). The token shifting operation is then performed, which first slices the embeddings, then shifts them over 1 position. Using our notation, this would look like shift=[40, 60]. So, of the 100 features, 60 are kept, and 40 are replaced by 40 features from the previous position (if there is no previous token, the features will be padded with zeros). This token shifting operation is essentially a convolution, and has been used in computer vision publications. For NLP, this simple technique hasn't been published but EleutherAI's discord chat recommends it. For the general case, our token shift notation is:
+
+num_features @ t = [num_features @ t-n, ..., num_features @ t-1, num_features @ t]
 
 
 
 <img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/768_shifting.PNG">
-
-Above, we plot training progress in millions of tokens (x-axis) vs loss (y-axis). The shift list is the token shifting strategy -> [num_features @ t-n, ..., num_features @ t-1, num_features @ t]. For example, shift=[128, 256, 384] means 128 features from t-2, and 256 features from t-1 are inserted into t's representation at each layer - finally, 384 features from t are kept.
 
 It seems that token shifting converges faster for all settings. Next, we can see (while squinting) that blue is no better than black (baseline) at 500M tokens. Comparing blue to orange we can conclude that blue likely didn't keep enough features from t (256 vs 356 for orange). Lastly, red is the clear winner - simply shifting half of the representation from the previous position in the sequence. We can safely conclude that token shifting helps, but too much shifting hurts, or at least offsets the advantages. These findings align with rumors from EleutherAI's discord. 
 
