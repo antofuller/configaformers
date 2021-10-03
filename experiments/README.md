@@ -13,9 +13,18 @@ Above, we plot context length (x-axis) vs loss (y-axis). Across 10 different tra
 
 There are 2 observations that stick out. First, notice that early on in training, loss values are lower for context lengths in the 100-200 range, and slowly increase with increasing context. Later on in training, tokens with longer contexts have lower loss - which is the expected result given that they have more information to make predictions. So maybe early on in training, more information actually confuses the model and degrades performance. The second observation is the strange behaviour in the first 20 tokens, or so. This will be investigated later, but my initial guess is that this is either an artifact of the training data (for example, if 3rd token is typically a sub-word/suffix, then it will be much easier to predict than the start of a new word), and/or is the result of our position encoding strategy.
 
-<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/baseline_vocab.PNG">
+Let's do a quick investigation of the role of token type on the strange loss values with contexts less than 50, noted above. 
+
+<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/first_30_positions.PNG">
 
 Figure 2
+
+The y-axis plots our baseline loss values at position x, normalized between 0 and 1 (over the full sequence). Red is the normalized ratio of tokens that start a word to tokens that don't. The higher red is, the more tokens at this location start-off a word, and are therefore *naively* more difficult. However, red doesn't correlate with blue/green as much as I hoped. Specifically, positions 2, 3, and 4 have abnormally low loss values - if we only consider our naive token difficulty metric. Secondly, because both RoPE and AliBi position encoding strategies show the same pattern, it doesn't look like this is caused by our choice of position encoding. My next guess is that this phenomenon is caused by the fact that the start of a sequence is also the start of an article in The Pile. So if some articles are started in a similar way, like "CNN News for...", then some early positions may be easier to predict than our naive difficulty metric would suggest.
+
+
+<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/baseline_vocab.PNG">
+
+Figure 3
 
 Above, we plot vocabulary bucket (x-axis) vs loss (y-axis). Across 10 different training points (every 50M tokens). The red-to-blue colour transition reflects the first-to-last batch of 50M tokens. The vocabulary buckets (27 in total) were created by sorting each token by occurrence, in our dataset, and making a new bucket every 20 million tokens (cumulatively). As a result, the first 5 buckets only contain a single token. 
 
@@ -37,15 +46,15 @@ num_features(t) = [num_features(t-n), ... , num_features(t-1), num_features(t)]
 
 <img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/768_shifting.PNG">
 
-Figure 3
+Figure 4
 
 It seems that token shifting converges faster for all settings. Next, we can see (while squinting) that blue is no better than black (baseline) at 500M tokens. Comparing blue to orange we can conclude that blue likely didn't keep enough features from t (256 vs 384 for orange). Lastly, red is the clear winner - simply shifting half of the representation from the previous position in the sequence. We can safely conclude that token shifting helps, but too much shifting hurts, or at least offsets the advantages. These findings align with rumors from EleutherAI's discord. 
 
 <img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/768_wider.PNG">
 
-Figure 4
+Figure 5
 
-Here, we plot 2 wider and shallower models, still with 128M non-embedding parameters, against our baseline. Green doesn't perform as well, no surprise here as this high a width/depth ratio is never used. On the other hand, purple's token shifting does make up for its lack of depth. At 500M tokens, purple matches black, and as a result blue (from Fig. 3).
+Here, we plot 2 wider and shallower models, still with 128M non-embedding parameters, against our baseline. Green doesn't perform as well, no surprise here as this high a width/depth ratio is never used. On the other hand, purple's token shifting does make up for its lack of depth. At 500M tokens, purple matches black, and as a result blue (from Fig. 4).
 
 Below are the loss ratios (averaged over the last 10M tokens) of tokens that start a new word divided by tokens that don't (i.e. sub-words or suffixes).
 
@@ -67,7 +76,7 @@ Similar to the previous section, we will investigate various token shifting conf
 
 <img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/768_shifting_alibi_v2.PNG">
 
-Figure 5
+Figure 6
 
 This is our first surprising result - not that our baseline RoPE and baseline AliBi finish with the same loss (black and orange), but that <b>it appears that token shifting interacts with Alibi different from RoPE.</b> In this plot, we can see that shift=[128, 256, 384] is equal to shift=[384, 384] throughout training (red is plotted underneath blue). But with RoPE, shift=[128, 256, 384] is clearly inferior to shift=[384, 384]. This finding will need to be investigated.
 
