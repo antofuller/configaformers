@@ -59,11 +59,11 @@ Below are the loss ratios (averaged over the last 10M tokens) of tokens that sta
 | Green  | <b>1.3297</b>  | None
 | Purple  | 1.3336  | [128, 384, 512]
 
-The two lowest loss ratios are for the two models that did not use token shifting, <b>implying that token shifting improves sub-word accuracy more than it improves the accuracy of tokens that start a new word.</b> This intuitively makes sense because token shifting allows the model to incorporate information from near-by tokens via a mechanism that is completely separate from attention. And near-by information is plausibly more important for sub-word tokens than for tokens that start off a new word.
+The two lowest loss ratios are for the two models that did not use token shifting, <b>implying that token shifting improves sub-word accuracy more than it improves the accuracy of tokens that start a new word.</b> This intuitively makes sense because token shifting allows the model to incorporate information from near-by tokens via a mechanism that is completely separate from attention. And near-by information is presumably more important for sub-word tokens than for tokens that start off a new word.
 
-## Token Shifting w/ Alibi
+## Token Shifting w/ AliBi
 
-Similar to the previous section, we will investigate various token shifting configurations while using the Alibi positional encoding strategy. Alibi is a new position encoding technique that is very simple, intuitive, and is reported to perform on par with RoPE. We use Alibi's default parameters unless stated otherwise.
+Similar to the previous section, we will investigate various token shifting configurations while using the [AliBi positional encoding strategy](https://arxiv.org/abs/2108.12409). AliBi is a new position encoding technique that is very simple, intuitive, and is reported to perform on par with RoPE. We use AliBi's default parameters unless stated otherwise.
 
 <img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/768_shifting_alibi.PNG">
 
