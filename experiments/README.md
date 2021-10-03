@@ -65,7 +65,7 @@ The two lowest loss ratios are for the two models that did not use token shiftin
 
 Similar to the previous section, we will investigate various token shifting configurations while using the [AliBi positional encoding strategy](https://arxiv.org/abs/2108.12409). AliBi is a new position encoding technique that is very simple, intuitive, and is reported to perform on par with RoPE. We use AliBi's default parameters unless stated otherwise.
 
-<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/768_shifting_alibi.PNG">
+<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/768_shifting_alibi_v2.PNG">
 
 This is our first surprising result - not that our baseline RoPE and baseline Alibi finish with the same loss (black and orange), <b>but that it appears that token shifting interacts with Alibi different from RoPE.</b> In this plot, we can see that shift=[128, 256, 384] is equal to shift=[384, 384] throughout training (red is plotted underneath blue). But with RoPE, shift=[128, 256, 384] is clearly inferior to shift=[384, 384]. This finding will need to be investigated. 
 
