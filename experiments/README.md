@@ -43,7 +43,9 @@ It seems that token shifting converges faster for all settings. Next, we can see
 
 <img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/768_wider.PNG">
 
-Here, we plot 2 wider and shallower models, still with 128M non-embedding parameters, against our baseline. Green doesn't perform as well, no surprise here as this high a width/depth ratio is never used. On the other hand, purple's token shifting does make up for its lack of depth. At 500M tokens, purple matches black, and as a result blue (from the previous plot).
+Figure 4
+
+Here, we plot 2 wider and shallower models, still with 128M non-embedding parameters, against our baseline. Green doesn't perform as well, no surprise here as this high a width/depth ratio is never used. On the other hand, purple's token shifting does make up for its lack of depth. At 500M tokens, purple matches black, and as a result blue (from Fig. 3).
 
 Below are the loss ratios (averaged over the last 10M tokens) of tokens that start a new word divided by tokens that don't (i.e. sub-words or suffixes).
 
