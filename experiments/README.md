@@ -31,7 +31,7 @@ Token shifting essentially slices up each hidden state (along the feature dimens
 
 Above, we have 3 tokens ('soccer', 'is', and 'better') which are each converted into an embedding of size 100 (these are the features representing the corresponding token). The token shifting operation is then performed, which first slices the embeddings, then shifts them over 1 position. Using our notation, this would look like shift=[40, 60]. So, of the 100 features, 60 are kept, and 40 are replaced by 40 features from the previous position (if there is no previous token, the features will be padded with zeros). This token shifting operation is essentially a convolution, and has been used in computer vision publications. For NLP, this simple technique hasn't been published but EleutherAI's discord chat recommends it. For the general case, our token shift notation is:
 
-num_features @ t = [num_features @ t-n, ..., num_features @ t-1, num_features @ t]
+num_features(t) = [num_features(t-n), ... , num_features(t-1), num_features(t)]
 
 
 
