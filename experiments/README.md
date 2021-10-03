@@ -19,7 +19,15 @@ No surprise here, more common tokens are easier to predict by the model. We can 
 
 ## Token Shifting w/ RoPE
 
-This section will explore various token shifting configurations while using rotary positional embeddings (RoPE). The number of features rotated in the attention mechanism will be 1/4 the attention head dimension. In our case this will be 64/4 = 16 features to rotate. 
+This section will explore various token shifting configurations while using [rotary position embeddings (RoPE)](https://arxiv.org/abs/2104.09864). The number of features rotated in the attention mechanism will be 1/4 the attention head dimension, unless stated otherwise. In our case this will be 64/4 = 16 features to rotate. The effect of RoPE on attention scores is that it increases the similarity of queries and keys from near-by tokens (along the sequence dimension), and decreases the similarity of tokens that are far apart; thus infusing positional information in the attention map. Of course, without any positional encoding the attention mechanism has no position information, and it would simply operate on a bag (or set) of tokens.
+
+Token shifting essentially slices up each hidden state (along the feature dimension) in the sequence, and swaps out some number of features with neighboring hidden states. It may be best understood by visualizing the operation. Here is a drawing brought to you by MS Paint ;)
+
+<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/token_shifting.PNG">
+
+Above, we have 3 tokens ('soccer', 'is', and 'better') which are each converted into an embedding of size 100 (these are the features representing the corresponding token). The token shifting operation is then performed, which first slices the embeddings, then shifts them over 1 position. Using our notation, this would look like shift=[40, 60]. So, of the 100 features, 60 are kept, and 40 are replaced by 40 features from the previous position (if there is no previous token, the features will be padded with zeros). This token shifting operation is essentially a convolution, and has been used in computer vision publications. For NLP, this simple technique hasn't been published but EleutherAI's discord chat recommends it. 
+
+
 
 <img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/768_shifting.PNG">
 
