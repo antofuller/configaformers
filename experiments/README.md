@@ -67,6 +67,6 @@ Similar to the previous section, we will investigate various token shifting conf
 
 <img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/768_shifting_alibi_v2.PNG">
 
-This is our first surprising result - not that our baseline RoPE and baseline Alibi finish with the same loss (black and orange), <b>but that it appears that token shifting interacts with Alibi different from RoPE.</b> In this plot, we can see that shift=[128, 256, 384] is equal to shift=[384, 384] throughout training (red is plotted underneath blue). But with RoPE, shift=[128, 256, 384] is clearly inferior to shift=[384, 384]. This finding will need to be investigated. 
+This is our first surprising result - not that our baseline RoPE and baseline AliBi finish with the same loss (black and orange), but that <b>it appears that token shifting interacts with Alibi different from RoPE.</b> In this plot, we can see that shift=[128, 256, 384] is equal to shift=[384, 384] throughout training (red is plotted underneath blue). But with RoPE, shift=[128, 256, 384] is clearly inferior to shift=[384, 384]. This finding will need to be investigated. 
 
 ## Etc...
