@@ -29,7 +29,7 @@ Above, we have 3 tokens ('soccer', 'is', and 'better') which are each converted 
 
 
 
-<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/768_shifting.PNG">
+<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/768_shifting.png">
 
 Above, we plot training progress in millions of tokens (x-axis) vs loss (y-axis). The shift list is the token shifting strategy -> [num_features @ t-n, ..., num_features @ t-1, num_features @ t]. For example, shift=[128, 256, 384] means 128 features from t-2, and 256 features from t-1 are inserted into t's representation at each layer - finally, 384 features from t are kept.
 
