@@ -23,13 +23,13 @@ This section will explore various token shifting configurations while using [rot
 
 Token shifting essentially slices up each hidden state (along the feature dimension) in the sequence, and swaps out some number of features with neighboring hidden states. It may be best understood by visualizing the operation. Here is a drawing brought to you by MS Paint ;)
 
-<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/token_shifting.PNG">
+<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/token_shifting.png">
 
 Above, we have 3 tokens ('soccer', 'is', and 'better') which are each converted into an embedding of size 100 (these are the features representing the corresponding token). The token shifting operation is then performed, which first slices the embeddings, then shifts them over 1 position. Using our notation, this would look like shift=[40, 60]. So, of the 100 features, 60 are kept, and 40 are replaced by 40 features from the previous position (if there is no previous token, the features will be padded with zeros). This token shifting operation is essentially a convolution, and has been used in computer vision publications. For NLP, this simple technique hasn't been published but EleutherAI's discord chat recommends it. 
 
 
 
-<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/768_shifting.png">
+<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/768_shifting.PNG">
 
 Above, we plot training progress in millions of tokens (x-axis) vs loss (y-axis). The shift list is the token shifting strategy -> [num_features @ t-n, ..., num_features @ t-1, num_features @ t]. For example, shift=[128, 256, 384] means 128 features from t-2, and 256 features from t-1 are inserted into t's representation at each layer - finally, 384 features from t are kept.
 
