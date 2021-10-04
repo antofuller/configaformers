@@ -65,7 +65,7 @@ There are more comments in building_blocks.py - I'm not sure how I will organize
 
 ## Features To Add:
 1. Check config upon model init (like num_heads when re-using attention maps)
-2. Basic training script
-3. Incorporate MS DeepSpeed and/or TPU support
+2. Experiment with Triton (custom GPU kernels)
+3. Basic training script
 4. Automatic progressive training capability
 5. Dataset management tools
