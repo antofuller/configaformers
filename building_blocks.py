@@ -46,11 +46,15 @@ def shift(t: TensorType["batch", "length", "dim"],  # The tensor that will be sh
 
 
 class ShiftTokens(nn.Module):
-    def __init__(self, config, dim, shift_type="slice", act="none"):
+    def __init__(self, config,
+                 dim,
+                 shift_type,
+                 shift_act,
+                 ):
         super().__init__()
         self.config = config
         self.shift_type = shift_type
-        self.act = act
+        self.shift_act = shift_act
         sum_features = sum([x['features'] for x in config])  # Add up the number of features to ensure the sum is equal
         # to the total number of features
 
@@ -74,7 +78,7 @@ class ShiftTokens(nn.Module):
             chunk = _x[:, :, start_idx:end_idx]  # Select features and remove them from the input tensor
             chunk = shift(chunk, shift_amt, mask)  # Perform the shift operation
 
-            if self.act == "sigmoid":
+            if self.shift_act == "sigmoid":
                 chunk = torch.sigmoid(chunk)
 
             splitted.append(chunk)  # Store them in a list
@@ -352,6 +356,8 @@ class Attention(nn.Module):
                  rotate_v_bool: bool = True,  # Apply a rotation to values
                  dim_rope: Optional[int] = None,  # Number of features to rotate
                  token_shift_config: Optional[List[Dict]] = None,  # Config for token shifting
+                 shift_type: str = "slice",  # Token shift type, one of slice, add, or mult
+                 shift_act: Optional[str] = "none",  # Apply an activation to the shifted features, sigmoid or none
                  output_gate: Optional[Tuple[str, str]] = None,  # If, and how, to gate the block's output
                  add_residual: bool = True,  # Add skip connection
                  ):
@@ -413,7 +419,10 @@ class Attention(nn.Module):
             self.post_norm = nn.LayerNorm(dim)
 
         if self.token_shift_config:
-            self.shift_tokens = ShiftTokens(config=token_shift_config, dim=dim)
+            self.shift_tokens = ShiftTokens(config=token_shift_config,
+                                            dim=dim,
+                                            shift_type=shift_type,
+                                            shift_act=shift_act)
 
         if self.output_gate:
             self.final_gate = nn.Linear(dim, dim)
