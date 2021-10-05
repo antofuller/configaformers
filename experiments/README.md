@@ -82,6 +82,6 @@ Figure 6
 
 This is our first surprising result - not that our baseline RoPE and baseline AliBi finish with the same loss (black and orange), but that <b>it appears that token shifting interacts with Alibi different from RoPE.</b> In this plot, we can see that shift=[128, 256, 384] is equal to shift=[384, 384] throughout training (red is plotted underneath blue). But with RoPE, shift=[128, 256, 384] is clearly inferior to shift=[384, 384]. This finding will need to be investigated.
 
-Additionally, performing the token shift operation only on the intermediate FFN representations, shown in green and cyan, does not seem to work. 
+Additionally, performing the token shift operation only on the intermediate FFN representations, shown in green and cyan, clearly hurts performance. So it seems that token shifting inside the FFN limits the FFN's ability to process the attention output (since the FFN is directly after the attention block). 
 
 ## Etc...
