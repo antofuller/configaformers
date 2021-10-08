@@ -172,6 +172,8 @@ class FFN(nn.Module):
                  post_norm_bool: bool = False,  # Apply layer normalization after the FFN
                  token_shift_config: Optional[List[Dict]] = None,  # Config for token shifting
                  inner_token_shift_config: Optional[List[Dict]] = None,  # Config for token shifting the inner features
+                 shift_type: str = "slice",  # Token shift type, one of slice, add, or mult
+                 shift_act: Optional[str] = "none",  # Apply an activation to the shifted features, sigmoid or none
                  output_gate: Optional[Tuple[str, str]] = None,  # If, and how, to gate the block's output
                  add_residual: bool = True,  # Add skip connection
                  ):
@@ -229,10 +231,16 @@ class FFN(nn.Module):
             self.final_gate = nn.Linear(dim, dim)
 
         if self.token_shift_config:
-            self.shift_tokens = ShiftTokens(config=token_shift_config, dim=dim)
+            self.shift_tokens = ShiftTokens(config=token_shift_config,
+                                            dim=dim,
+                                            shift_type=shift_type,
+                                            shift_act=shift_act)
 
         if self.inner_token_shift_config:
-            self.shift_tokens_inner = ShiftTokens(config=inner_token_shift_config, dim=inner_dim)
+            self.shift_tokens_inner = self.shift_tokens = ShiftTokens(config=token_shift_config,
+                                                                      dim=inner_dim,
+                                                                      shift_type=shift_type,
+                                                                      shift_act=shift_act)
 
         self.dropout = nn.Dropout(dropout)
         self.proj_down = nn.Linear(inner_dim, dim)
