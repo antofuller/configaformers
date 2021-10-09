@@ -84,4 +84,10 @@ This is our first surprising result - not that our baseline RoPE and baseline Al
 
 Additionally, performing the token shift operation only on the intermediate FFN representations, shown in green and cyan, clearly hurts performance. So it seems that token shifting inside the FFN limits the FFN's ability to process the attention output (since the FFN is directly after the attention block). 
 
+<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/768_shift_add_mult.PNG">
+
+Figure 7
+
+Above, we play around with different ways of performing the token shift operation, and compare them to black and blue (as baselines). The mult/add refers to the operation between the token shifted and non-token shifted representations, and the sigmoid (if applied) is performed only on the token shifted representations. None of them improve on our baseline (black), which implies that performing these more complex interactions between neighboring tokens confuses the model by entangling representations. These experiments were motivated by the success of some gating operations (like gated linear units), although they may work with an explicit GLU - albeit at the cost of extra parameters. Finally, one minor observation here is that performing a sigmoid on the shifted tokens helps when multiplying, but hurts when adding.
+
 ## Etc...
