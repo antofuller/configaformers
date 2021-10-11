@@ -61,7 +61,7 @@ There are more comments in building_blocks.py - I'm not sure how I will organize
 
 ## Blocks to Add:
 1. Self-gated queries and keys with sigmoid
-2. Token shifting interaction (either add or multiply, rather than slicing representations)
+2. Layer norms everywhere (https://openreview.net/pdf?id=GMYWzWztDx5)
 
 ## Features To Add:
 1. Check config upon model init (like num_heads when re-using attention maps)
