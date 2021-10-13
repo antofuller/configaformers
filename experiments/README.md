@@ -98,4 +98,12 @@ Changing the location of the token shift operation seems to significantly alter 
 
 Next we will experiment with token shifting at certain layers - but only prior to attention, as FFN token shifting doesn't seem to work well. 
 
+<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/768_shift_more_locations.PNG">
+
+Figure 9
+
+This plot is surprising to me. It shows that, at the 500M token mark, token shifting every 2nd layer (orange) outperforms token shifting only the first half (red), only the second half (green), and even shifting all layers (blue, which was our previous best model). Considering that two models (green and orange) outperformed blue while only shifting at 6 locations, instead of 12, it seems that blue was over-shifted. Another unexpected result is that shifting the first 6 layers performed worse than shifting the final 6 layers because typically when convolutions and attention blocks are used together, convolutions appear in earlier layers (see the many conv+attn vision models, and DeBERTa-V2 for NLP). 
+
+However, I do expect this result to change if we alter the shift config from [384, 384] to something like [368, 400], which shifts fewer features. I suspect that a 50/50 shift ratio, when shifting only 1 token is "shifting too much" if used at every layer. 
+
 ## Etc...
