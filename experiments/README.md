@@ -106,10 +106,10 @@ This plot is surprising to me. It shows that, at the 500M token mark, token shif
 
 | Config  | Mean Loss on tokens 400-500M | Num Runs | Standard Deviation |
 | ------------- | ------------- | ------------- | ------------- |
-| Alibi, No Shift  | 3.691  | 1 | -
-| Alibi, Shift=[384, 384]  | 3.641  | 5 | 0.0036
-| Alibi, Shift=[384, 384], every 2nd layer  | <b>3.633</b>  | 5 | 0.0035
+| AliBi, No Shift  | 3.691  | 1 | -
+| AliBi, Shift=[384, 384]  | 3.641  | 5 | 0.0036
+| AliBi, Shift=[384, 384], every 2nd layer  | <b>3.633</b>  | 5 | 0.0035
 
 This confirms that, at least for configurations tested, skipping the token shift operation every 2nd layer modestly improves performance; it also shows that we can generally rely on single training runs as the standard deviation across 5 runs is small. However, I do expect this result to change if we alter the shift config from [384, 384] to something like [368, 400], which shifts fewer features. I suspect that a 50/50 shift ratio, when shifting only 1 token is "shifting too much" if used at every layer. 
 
-## Etc...
+## To be continued...
