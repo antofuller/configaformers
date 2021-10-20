@@ -102,8 +102,14 @@ Next we will experiment with token shifting at certain layers - but only prior t
 
 Figure 9
 
-This plot is surprising to me. It shows that, at the 500M token mark, token shifting every 2nd layer (orange) outperforms token shifting only the first half (red), only the second half (green), and even shifting all layers (blue, which was our previous best model). Considering that two models (green and orange) outperformed blue while only shifting at 6 locations, instead of 12, it seems that blue was over-shifted. Another unexpected result is that shifting the first 6 layers performed worse than shifting the final 6 layers because typically when convolutions and attention blocks are used together, convolutions appear in earlier layers (see the many conv+attn vision models, and DeBERTa-V2 for NLP). I will re-run this experiment a few more times to ensure the results are not caused by model initialization. 
+This plot is surprising to me. It shows that, at the 500M token mark, token shifting every 2nd layer (orange) outperforms token shifting only the first half (red), only the second half (green), and even shifting all layers (blue, which was our previous best model). Considering that two models (green and orange) outperformed blue while only shifting at 6 locations, instead of 12, it seems that blue was over-shifted. Another unexpected result is that shifting the first 6 layers performed worse than shifting the final 6 layers because typically when convolutions and attention blocks are used together, convolutions appear in earlier layers (see the many conv+attn vision models, and DeBERTa-V2 for NLP). Since our model weights are randomly initialized, we should perform several training runs to confirm the result.
 
-However, I do expect this result to change if we alter the shift config from [384, 384] to something like [368, 400], which shifts fewer features. I suspect that a 50/50 shift ratio, when shifting only 1 token is "shifting too much" if used at every layer. 
+| Config  | Mean Loss on tokens 400-500M | Num Runs | Standard Deviation |
+| ------------- | ------------- | ------------- | ------------- |
+| Alibi, No Shift  | 3.691  | 1 | -
+| Alibi, Shift=[384, 384]  | 3.641  | 5 | 0.0036
+| Alibi, Shift=[384, 384], every 2nd layer  | <b>3.633</b>  | 5 | 0.0035
+
+This confirms that, at least for configurations tested, skipping the token shift operation every 2nd layer modestly improves performance; it also shows that we can generally rely on single training runs as the standard deviation across 5 runs is small. However, I do expect this result to change if we alter the shift config from [384, 384] to something like [368, 400], which shifts fewer features. I suspect that a 50/50 shift ratio, when shifting only 1 token is "shifting too much" if used at every layer. 
 
 ## Etc...
