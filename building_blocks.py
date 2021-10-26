@@ -175,6 +175,7 @@ class FFN(nn.Module):
                  shift_type: str = "slice",  # Token shift type, one of slice, add, or mult
                  shift_act: Optional[str] = "none",  # Apply an activation to the shifted features, sigmoid or none
                  output_gate: Optional[Tuple[str, str]] = None,  # If, and how, to gate the block's output
+                 inner_norm_bool: bool = False,  # Apply layer normalization on the inner features
                  add_residual: bool = True,  # Add skip connection
                  ):
         super().__init__()
@@ -209,6 +210,7 @@ class FFN(nn.Module):
         self.num_projections = num_projections
         self.num_gelu = num_gelu
         self.pre_norm_bool = pre_norm_bool
+        self.inner_norm_bool = inner_norm_bool
         self.post_norm_bool = post_norm_bool
         self.output_gate = output_gate
         self.token_shift_config = token_shift_config
@@ -218,6 +220,9 @@ class FFN(nn.Module):
         # Functions
         if self.pre_norm_bool:
             self.pre_norm = nn.LayerNorm(dim)
+
+        if self.inner_norm_bool:
+            self.inner_norm = nn.LayerNorm(dim)
 
         if self.post_norm_bool:
             self.post_norm = nn.LayerNorm(dim)
@@ -323,6 +328,10 @@ class FFN(nn.Module):
             x = self.shift_tokens_inner(x)  # Shift neighboring token representations
 
         x = self.dropout(x)  # Set some features to zero
+
+        if self.inner_norm_bool:
+            x = self.inner_norm(x)   # Normalize the intermediate FFN representations
+
         x = self.proj_down(x)  # Project back down
 
         if self.output_gate:
@@ -367,6 +376,7 @@ class Attention(nn.Module):
                  shift_type: str = "slice",  # Token shift type, one of slice, add, or mult
                  shift_act: Optional[str] = "none",  # Apply an activation to the shifted features, sigmoid or none
                  output_gate: Optional[Tuple[str, str]] = None,  # If, and how, to gate the block's output
+                 head_scale: bool = False,  # Scale attention heads from NormFormer
                  add_residual: bool = True,  # Add skip connection
                  ):
         super().__init__()
@@ -387,6 +397,7 @@ class Attention(nn.Module):
         self.residual_attention_bool = residual_attention_bool
         self.pre_norm_bool = pre_norm_bool
         self.post_norm_bool = post_norm_bool
+        self.head_scale = head_scale
 
         if dim_attn:
             self.dim_attn = dim_attn
@@ -437,6 +448,10 @@ class Attention(nn.Module):
 
         if self.rotate_qk_bool or self.rotate_v_bool:
             self.rotary_pos_emb = RotaryEmbedding(self.dim_rope)
+
+        if self.head_scale:
+            # Initialize HeadScaleMHA scalar parameters
+            self.mha_scale_params = nn.Parameter(torch.ones((1, num_heads, 1, 1)), requires_grad=True)
 
         self.attn_fn = F.softmax
         self.to_out = nn.Linear(dim_attn, dim)
@@ -498,6 +513,11 @@ class Attention(nn.Module):
             _v = apply_rotary_pos_emb(x=_v, frequencies=_rope)
 
         _v = einsum('b h i j, b h j d -> b h i d', _attn_map, _v)  # Weighted sum of value heads based on attn_map
+
+        if self.head_scale:
+            # We have num_heads scalar parameters which will scale each head
+            self.mha_scale_params = self.mha_scale_params.repeat(_v.shape[0], 1, _v.shape[2], _v.shape[3])
+            _v = _v * self.mha_scale_params
 
         return _v
 
