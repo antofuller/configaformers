@@ -222,7 +222,7 @@ class FFN(nn.Module):
             self.pre_norm = nn.LayerNorm(dim)
 
         if self.inner_norm_bool:
-            self.inner_norm = nn.LayerNorm(dim)
+            self.inner_norm = nn.LayerNorm(inner_dim)
 
         if self.post_norm_bool:
             self.post_norm = nn.LayerNorm(dim)
