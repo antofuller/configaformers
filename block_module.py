@@ -33,18 +33,18 @@ class Block(nn.Module):
                                                 f" {type(module_config)}, inside the list."
 
         # Build block by iterating over modules
-        self.modules_list = nn.ModuleList([])
+        self.module_list = nn.ModuleList([])
         for module_config in block_config:
             assert 'type' in module_config.keys(), f'Module not given a type'
             assert type('type') == str,  f"Module's type needs to be a string."
 
             block = get_block(_type=module_config['type'])
 
-            self.modules_list.append(block(module_config))
+            self.module_list.append(block(module_config))
 
     def forward(self, x):
 
-        for _module in enumerate(self.modules_list):
+        for i_mod, _module in enumerate(self.module_list):
             x = _module(x)
 
         return x
