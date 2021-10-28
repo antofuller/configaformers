@@ -33,10 +33,10 @@ class Activation(nn.Module):
         super().__init__()
 
         # Checking input_dim settings
-        assert 'dim' in config, f"Activation was not given dim, it is needed!"
-        assert type(config['dim']) == int, f"Inside Activation, dim is a {type(config['dim'])}," \
-                                           f" it needs to be an integer!"
-        self.dim = config['dim']
+        assert 'input_dim' in config, f"Activation was not given input_dim, it is needed!"
+        assert type(config['input_dim']) == int, f"Inside Activation, input_dim is a {type(config['input_dim'])}," \
+                                                 f" it needs to be an integer!"
+        self.input_dim = config['input_dim']
 
         # Checking input_norm settings
         if 'input_norm' not in config:
@@ -61,10 +61,10 @@ class Activation(nn.Module):
             assert self.num_projections <= 4, f"The max number of allowable activation gates is 4," \
                                               f" you entered {len(config['activation_function'])}."
 
-            assert self.dim % self.num_projections == 0, f"The number of activation functions needs to" \
-                                                         f" divide evenly into dim."
+            assert self.input_dim % self.num_projections == 0, f"The number of activation functions needs to" \
+                                                               f" divide evenly into input_dim."
 
-            self.output_dim = int(self.num_projections / self.dim)
+            self.output_dim = int(self.num_projections / self.input_dim)
 
             # Insert activation functions into a ModuleList
             self.gating_act_funcs = nn.ModuleList([])
@@ -78,7 +78,7 @@ class Activation(nn.Module):
             # No GLUs
             self.glu_bool = False
             self.act_func = get_non_linearity(non_lin=config['activation_function'])
-            self.output_dim = self.dim
+            self.output_dim = self.input_dim
 
         else:
             print(f"activation_function must be a string or a list of strings.")
