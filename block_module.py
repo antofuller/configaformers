@@ -34,13 +34,23 @@ class Block(nn.Module):
 
         # Build block by iterating over modules
         self.module_list = nn.ModuleList([])
-        for module_config in block_config:
+        for i_mod, module_config in enumerate(block_config):
             assert 'type' in module_config.keys(), f'Module not given a type'
             assert type('type') == str,  f"Module's type needs to be a string."
 
             block = get_block(_type=module_config['type'])
+            block = block(module_config)
 
-            self.module_list.append(block(module_config))
+            # Check dimensions between modules
+            input_dim = block.input_dim
+            current_dim = block.output_dim
+
+            if i_mod != 0:
+                assert current_dim == input_dim, f'The output dim of the previous block (index: {i_mod-1})' \
+                                                 f' is {current_dim}, but the input dim of this block (index: {i_mod})' \
+                                                 f' is {input_dim}. They must match. '
+
+            self.module_list.append(block)
 
     def forward(self, x):
 

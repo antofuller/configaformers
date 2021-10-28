@@ -11,15 +11,15 @@ class LinearProj(nn.Module):
         super().__init__()
 
         # Checking input_dim settings
-        assert 'input_dim' in config, f"LinearProj was not given input_dim, it is needed!"
-        assert type(config['input_dim']) == int, f"Inside LinearProj, input_dim is a {type(config['input_dim'])}," \
+        assert 'input_dim' in config, f"Linear module was not given input_dim, it is needed!"
+        assert type(config['input_dim']) == int, f"Inside linear module, input_dim is a {type(config['input_dim'])}," \
                                                  f" it needs to be an integer!"
         self.input_dim = config['input_dim']
 
         # Checking output_dim settings
-        assert 'output_dim' in config, f"LinearProj was not given output_dim, it is needed!"
-        assert type(config['output_dim']) == int, f"Inside LinearProj, output_dim is a {type(config['output_dim'])}," \
-                                                  f" it needs to be an integer!"
+        assert 'output_dim' in config, f"Linear module was not given output_dim, it is needed!"
+        assert type(config['output_dim']) == int, f"Inside linear module, output_dim is a" \
+                                                  f" {type(config['output_dim'])}, it needs to be an integer!"
         self.output_dim = config['output_dim']
 
         # Checking input_norm settings
