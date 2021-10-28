@@ -53,7 +53,7 @@ class Activation(nn.Module):
         if 'activation_function' not in config:
             config['activation_function'] = 'gelu'  # Defaults to gelu
 
-        if type(config['activation_function']) is List[str]:
+        if type(config['activation_function']) is list:
             # Gated linear unit(s) (GLUs) will be configured
             self.glu_bool = True
             self.num_projections = len(config['activation_function'])
@@ -69,6 +69,9 @@ class Activation(nn.Module):
             # Insert activation functions into a ModuleList
             self.gating_act_funcs = nn.ModuleList([])
             for act_string in config['activation_function']:
+                assert type(act_string) == str, f'Activation function list needs to be strings,' \
+                                                f' it was given {type(act_string)}.'
+
                 self.gating_act_funcs.append(get_non_linearity(non_lin=act_string))
 
         elif type(config['activation_function']) is str:
