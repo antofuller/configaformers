@@ -61,7 +61,7 @@ class Activation(nn.Module):
             assert self.num_projections <= 4, f"The max number of allowable activation gates is 4," \
                                               f" you entered {len(config['activation_function'])}."
 
-            assert self.num_projections % self.dim == 0, f"The number of activation functions needs to" \
+            assert self.dim % self.num_projections == 0, f"The number of activation functions needs to" \
                                                          f" divide evenly into dim."
 
             self.output_dim = int(self.num_projections / self.dim)
