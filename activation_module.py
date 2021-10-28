@@ -64,7 +64,7 @@ class Activation(nn.Module):
             assert self.input_dim % self.num_projections == 0, f"The number of activation functions needs to" \
                                                                f" divide evenly into input_dim."
 
-            self.output_dim = int(self.num_projections / self.input_dim)
+            self.output_dim = int(self.input_dim / self.num_projections)
 
             # Insert activation functions into a ModuleList
             self.gating_act_funcs = nn.ModuleList([])
