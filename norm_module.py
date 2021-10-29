@@ -2,10 +2,10 @@ import torch.nn.functional as F
 import torch
 from torch import nn
 from typing import List
+from utils import set_default
+
 
 # This module is dedicated to Norm Macdonald
-
-
 # Implementations from https://github.com/lucidrains/x-transformer
 
 class RMSNorm(nn.Module):
@@ -59,3 +59,28 @@ def get_norm(norm_type: str, dim: int):
     else:
         print(f"Norm: {norm_type} not available.")
 
+
+class Norm(nn.Module):
+    def __init__(self,
+                 config,
+                 ):
+        super().__init__()
+
+        # Checking input_dim settings
+        assert 'input_dim' in config, f"Norm module was not given input_dim, it is needed!"
+        assert type(config['input_dim']) == int, f"Inside norm module, input_dim is a {type(config['input_dim'])}," \
+                                                 f" it needs to be an integer!"
+        self.input_dim = config['input_dim']
+        self.output_dim = self.input_dim
+
+        # Configuring input_norm and output_norm
+        norm_name = set_default(_key='norm_type', _dict=config, _default='layer_norm')
+        self.norm = get_norm(norm_type=config[norm_name], dim=self.input_dim)
+
+        # Configuring names
+        self.input_name = set_default(_key='input_name', _dict=config, _default='x')
+        self.output_name = set_default(_key='output_name', _dict=config, _default='x')
+
+    def forward(self, _data):
+        _data[self.output_name] = self.norm(_data[self.input_name])
+        return _data
