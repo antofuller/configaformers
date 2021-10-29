@@ -9,12 +9,27 @@ from linear_module import LinearProj
 from activation_module import Activation
 
 
-def get_block(_type):
-    _type = _type.lower()  # Make lowercase
-    if _type == "activation":
+def set_default(_key,
+                _dict,
+                _default,
+                _type=str,
+                ):
+    if _key in _dict.keys():
+        out = _dict[_key]
+    else:
+        out = _default
+
+    if _type:
+        assert type(out) == _type, f"{out} is type {type(out)}, but should be type {_type}"
+    return out
+
+
+def get_block(block_type):
+    block_type = block_type.lower()  # Make lowercase
+    if block_type == "activation":
         return Activation
 
-    elif _type == "linear":
+    elif block_type == "linear":
         return LinearProj
 
     else:
@@ -42,7 +57,7 @@ class Block(nn.Module):
             if 'input_key' not in module_config.keys():
                 module_config['input_key'] = 'x'  # Defaults to receive x as input to the module
 
-            block = get_block(_type=module_config['type'])
+            block = get_block(block_type=module_config['type'])
             block = block(module_config)
 
             # Check dimensions between modules

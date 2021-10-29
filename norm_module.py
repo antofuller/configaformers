@@ -32,16 +32,28 @@ class ScaleNorm(nn.Module):
         return x / norm.clamp(min=self.eps) * self.g
 
 
+def init_norm(_key, _config, _dim):
+    if _key not in _config:
+        norm_bool = False
+        norm_function = False
+    else:
+        assert type(_config[_key]) == str, f"{_config[_key]} is type {type(_config[_key])}, but should be a string!"
+        norm_bool = True
+        norm_function = get_norm(norm_type=_config[_key], dim=_dim)
+
+    return norm_bool, norm_function
+
+
 def get_norm(norm_type: str, dim: int):
     # TODO: Batch norm may involve rearranging
     norm_type = norm_type.lower()  # Make lowercase
     if norm_type == 'layer_norm':
         return nn.LayerNorm(dim)
 
-    if norm_type == 'rms_norm':
+    elif norm_type == 'rms_norm':
         return RMSNorm(dim)
 
-    if norm_type == 'scale_norm':
+    elif norm_type == 'scale_norm':
         return ScaleNorm(dim)
 
     else:

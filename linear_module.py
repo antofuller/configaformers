@@ -1,7 +1,8 @@
 import torch.nn.functional as F
 import torch
 from torch import nn
-from norm_module import get_norm
+from norm_module import init_norm
+from block_module import set_default
 
 
 class LinearProj(nn.Module):
@@ -22,38 +23,27 @@ class LinearProj(nn.Module):
                                                   f" {type(config['output_dim'])}, it needs to be an integer!"
         self.output_dim = config['output_dim']
 
-        # Checking input_norm settings
-        if 'input_norm' not in config:
-            self.input_norm_bool = False  # Defaults to False
-
-        else:
-            if type(config['input_norm']) == str:
-                self.input_norm_bool = True
-                self.input_norm = get_norm(norm_type=config['input_norm'], dim=self.input_dim)
-            else:
-                self.input_norm_bool = False
-
-        # Checking output_norm settings
-        if 'output_norm' not in config:
-            self.output_norm_bool = False  # Defaults to False
-
-        else:
-            if type(config['output_norm']) == str:
-                self.output_norm_bool = True
-                self.output_norm = get_norm(norm_type=config['output_norm'], dim=self.output_dim)
-            else:
-                self.output_norm_bool = False
+        # Configuring input_norm and output_norm
+        self.input_norm_bool, self.input_norm = init_norm(_key='input_norm',
+                                                          _config=config,
+                                                          _dim=self.input_dim)
+        self.output_norm_bool, self.output_norm = init_norm(_key='output_norm',
+                                                            _config=config,
+                                                            _dim=self.output_dim)
 
         self.proj = nn.Linear(self.input_dim, self.output_dim)
-        self.input_key = config['input_key']
+
+        # Configuring names
+        self.input_name = set_default(_key='input_name', _dict=config, _default='x')
+        self.output_name = set_default(_key='output_name', _dict=config, _default='x')
 
     def forward(self, _data):
         if self.input_norm_bool:
-            _data[self.input_key] = self.input_norm(_data[self.input_key])
+            _data[self.input_name] = self.input_norm(_data[self.input_name])
 
-        _data[self.input_key] = self.proj(_data[self.input_key])
+        _data[self.output_name] = self.proj(_data[self.input_name])
 
         if self.output_norm_bool:
-            _data[self.input_key] = self.output_norm(_data[self.input_key])
+            _data[self.output_name] = self.output_norm(_data[self.output_name])
 
         return _data
