@@ -62,14 +62,14 @@ class MHADots(nn.Module):
         # features. This is not the same as normalizing the query or key features first, then reshaping.
 
         # Prepare queries
-        queries = rearrange(_data[self.input_name_query],
+        queries = rearrange(_data[self.input_name_queries],
                             'batch length_queries (num_heads head_dim) -> batch num_heads length_queries head_dim',
                             num_heads=self.num_heads)
         if self.norm_query_heads_bool:
             queries = self.norm_query_heads(queries)
 
         # Prepare keys
-        keys = rearrange(_data[self.input_name_key],
+        keys = rearrange(_data[self.input_name_keys],
                          'batch length_keys (num_heads head_dim) -> batch num_heads length_keys head_dim',
                          num_heads=self.num_heads)
         if self.norm_key_heads_bool:
