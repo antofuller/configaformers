@@ -1,4 +1,4 @@
-# *configaformer*
+# *configaformer* (re-factor in progress)
 A python library for highly configurable transformers - easing model architecture search and experimentation. Heavily inspired by https://github.com/lucidrains/x-transformers
 
 The implementation prioritizes flexibility and readability over speed (i.e. time per step).
