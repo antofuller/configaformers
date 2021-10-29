@@ -7,6 +7,7 @@ from typing import Optional, Tuple, Union, List, Dict
 from attention_module import MHADots, MHAWeightedSum
 from linear_module import LinearProj
 from activation_module import Activation
+from norm_module import Norm
 
 
 def get_block(block_type):
@@ -22,6 +23,9 @@ def get_block(block_type):
 
     elif block_type == "mha_sum":
         return MHAWeightedSum
+
+    elif block_type == "norm":
+        return Norm
 
     else:
         raise "Layer type does not match any available types."
