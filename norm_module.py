@@ -75,7 +75,7 @@ class Norm(nn.Module):
 
         # Configuring input_norm and output_norm
         norm_name = set_default(_key='norm_type', _dict=config, _default='layer_norm')
-        self.norm = get_norm(norm_type=config[norm_name], dim=self.input_dim)
+        self.norm = get_norm(norm_type=norm_name, dim=self.input_dim)
 
         # Configuring names
         self.input_name = set_default(_key='input_name', _dict=config, _default='x')
