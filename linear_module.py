@@ -2,7 +2,7 @@ import torch.nn.functional as F
 import torch
 from torch import nn
 from norm_module import init_norm
-from block_module import set_default
+from utils import set_default
 
 
 class LinearProj(nn.Module):

@@ -3,25 +3,9 @@ import torch
 from torch import nn, einsum
 from einops import rearrange, repeat, reduce
 import math
-
 from typing import Optional, Tuple, Union, List, Dict
 from linear_module import LinearProj
 from activation_module import Activation
-
-
-def set_default(_key,
-                _dict,
-                _default,
-                _type=str,
-                ):
-    if _key in _dict.keys():
-        out = _dict[_key]
-    else:
-        out = _default
-
-    if _type:
-        assert type(out) == _type, f"{out} is type {type(out)}, but should be type {_type}"
-    return out
 
 
 def get_block(block_type):

@@ -3,6 +3,7 @@ import torch
 from torch import nn
 from typing import List
 from norm_module import get_norm
+from utils import set_default
 
 
 def get_non_linearity(non_lin: str):

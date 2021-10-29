@@ -3,7 +3,7 @@ import torch
 from torch import nn, einsum
 from norm_module import get_norm, init_norm
 from einops import rearrange, repeat, reduce
-from block_module import set_default
+from utils import set_default
 
 
 def get_attention_function(attn_type: str):
