@@ -4,6 +4,7 @@ from torch import nn, einsum
 from einops import rearrange, repeat, reduce
 import math
 from typing import Optional, Tuple, Union, List, Dict
+from attention_module import MHADots, MHAWeightedSum
 from linear_module import LinearProj
 from activation_module import Activation
 
@@ -15,6 +16,12 @@ def get_block(block_type):
 
     elif block_type == "linear":
         return LinearProj
+
+    elif block_type == "mha_dots":
+        return MHADots
+
+    elif block_type == "mha_sum":
+        return MHAWeightedSum
 
     else:
         raise "Layer type does not match any available types."
