@@ -115,7 +115,7 @@ class MHAWeightedSum(nn.Module):
                                                    _default=False, _type=None)
 
         self.attention_type = set_default(_key='attn_function', _dict=config, _default='softmax')
-        self.attn_function = get_attention_function(attn_type=config[self.attention_type])
+        self.attn_function = get_attention_function(attn_type=self.attention_type)
 
     def forward(self, _data):
         # Attention operates on a set, so it must receive inputs of shape (bsz, seq_len, dim)
