@@ -2,7 +2,7 @@ import torch.nn.functional as F
 import torch
 from torch import nn
 from typing import List
-from norm_module import get_norm
+from norm_module import init_norm
 from utils import set_default
 
 
@@ -40,15 +40,9 @@ class Activation(nn.Module):
         self.input_dim = config['input_dim']
 
         # Checking input_norm settings
-        if 'input_norm' not in config:
-            self.input_norm_bool = False  # Defaults to False
-
-        else:
-            if type(config['input_norm']) == str:
-                self.input_norm_bool = True
-                self.input_norm = get_norm(norm_type=config['input_norm'], dim=self.input_dim)
-            else:
-                self.input_norm_bool = False
+        self.input_norm_bool, self.input_norm = init_norm(_key='input_norm',
+                                                          _config=config,
+                                                          _dim=self.input_dim)
 
         # Checking activation settings
         if 'activation_function' not in config:
@@ -85,17 +79,13 @@ class Activation(nn.Module):
             print(f"activation_function must be a string or a list of strings.")
 
         # Checking output_norm settings
-        if 'output_norm' not in config:
-            self.output_norm_bool = False  # Defaults to False
+        self.output_norm_bool, self.output_norm = init_norm(_key='output_norm',
+                                                            _config=config,
+                                                            _dim=self.output_dim)
 
-        else:
-            if type(config['output_norm']) == str:
-                self.output_norm_bool = True
-                self.output_norm = get_norm(norm_type=config['output_norm'], dim=self.output_dim)
-            else:
-                self.output_norm_bool = False
-
-        self.input_name = config['input_name']
+        # Configuring names
+        self.input_name = set_default(_key='input_name', _dict=config, _default='x')
+        self.output_name = set_default(_key='output_name', _dict=config, _default='x')
 
     def _split_and_multiply(self, _x):
         # Split into chunks of equal shape along the feature/last dimension
@@ -119,15 +109,17 @@ class Activation(nn.Module):
 
     def forward(self, _data):
         if self.input_norm_bool:
-            _data[self.input_name] = self.input_norm(_data[self.input_name])
+            _data[self.output_name] = self.input_norm(_data[self.input_name])
+        elif self.output_name != self.output_name:
+            _data[self.output_name] = _data[self.input_name]
 
         if self.glu_bool:
-            _data[self.input_name] = self._split_and_multiply(_data[self.input_name])
+            _data[self.output_name] = self._split_and_multiply(_data[self.output_name])
         else:
-            _data[self.input_name] = self.act_func(_data[self.input_name])
+            _data[self.output_name] = self.act_func(_data[self.output_name])
 
         if self.output_norm_bool:
-            _data[self.input_name] = self.output_norm(_data[self.input_name])
+            _data[self.output_name] = self.output_norm(_data[self.output_name])
 
         return _data
 
