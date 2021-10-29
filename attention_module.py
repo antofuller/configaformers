@@ -123,7 +123,7 @@ class MHAWeightedSum(nn.Module):
         # features. This is not the same as normalizing the value features first, then reshaping.
 
         # Prepare values
-        values = rearrange(_data[self.input_name_value],
+        values = rearrange(_data[self.input_name_values],
                            'batch length_values (num_heads head_dim) -> batch num_heads length_values head_dim',
                            num_heads=self.num_heads)
         if self.norm_value_heads_bool:
