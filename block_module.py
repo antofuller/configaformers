@@ -8,6 +8,7 @@ from attention_module import MHADots, MHAWeightedSum
 from linear_module import LinearProj
 from activation_module import Activation
 from norm_module import Norm
+from stream_module import MakeStream, MergeStreams
 
 
 def get_block(block_type):
@@ -26,6 +27,12 @@ def get_block(block_type):
 
     elif block_type == "norm":
         return Norm
+
+    elif block_type == "make_stream":
+        return MakeStream
+
+    elif block_type == "merge_streams":
+        return MergeStreams
 
     else:
         raise "Layer type does not match any available types."
