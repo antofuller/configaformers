@@ -94,6 +94,8 @@ class Activation(nn.Module):
             else:
                 self.output_norm_bool = False
 
+        self.input_key = config['input_key']
+
     def _split_and_multiply(self, _x):
         # Split into chunks of equal shape along the feature/last dimension
         _x = _x.chunk(self.num_projections, dim=-1)
@@ -114,18 +116,18 @@ class Activation(nn.Module):
 
         return _x
 
-    def forward(self, x):
+    def forward(self, _data):
         if self.input_norm_bool:
-            x = self.input_norm(x)
+            _data[self.input_key] = self.input_norm(_data[self.input_key])
 
         if self.glu_bool:
-            x = self._split_and_multiply(x)
+            _data[self.input_key] = self._split_and_multiply(_data[self.input_key])
         else:
-            x = self.act_func(x)
+            _data[self.input_key] = self.act_func(_data[self.input_key])
 
         if self.output_norm_bool:
-            x = self.output_norm(x)
+            _data[self.input_key] = self.output_norm(_data[self.input_key])
 
-        return x
+        return _data
 
 

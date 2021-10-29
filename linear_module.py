@@ -45,14 +45,15 @@ class LinearProj(nn.Module):
                 self.output_norm_bool = False
 
         self.proj = nn.Linear(self.input_dim, self.output_dim)
+        self.input_key = config['input_key']
 
-    def forward(self, _x):
+    def forward(self, _data):
         if self.input_norm_bool:
-            _x = self.input_norm(_x)
+            _data[self.input_key] = self.input_norm(_data[self.input_key])
 
-        _x = self.proj(_x)
+        _data[self.input_key] = self.proj(_data[self.input_key])
 
         if self.output_norm_bool:
-            _x = self.output_norm(_x)
+            _data[self.input_key] = self.output_norm(_data[self.input_key])
 
-        return _x
+        return _data
