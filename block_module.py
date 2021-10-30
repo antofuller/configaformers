@@ -75,6 +75,9 @@ class Block(nn.Module):
                 string_to_add = f" {mod_output[0]} ({mod_output[1]} {mod_output[2]}) -"
                 string_to_print += string_to_add
 
+                # Update streams
+                streams[mod_output[0]] = mod_output[1]
+
             print(string_to_print)
 
             self.module_list.append(_module)
