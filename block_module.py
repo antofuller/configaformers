@@ -44,8 +44,8 @@ class Block(nn.Module):
                  ):
         super().__init__()
         # Type checking
-        assert type(block_config) == list, f"Block's config should be a list, it was given a {type(block_config)}"
-        for module_config in block_config:
+        assert type(block_config['modules']) == list, f"Block's config should be a list, it was given a {type(block_config)}"
+        for module_config in block_config['modules']:
             assert type(module_config) == dict, f"Block's config should be a list of dicts, it was given a" \
                                                 f" {type(module_config)}, inside the list."
 
