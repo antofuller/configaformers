@@ -4,7 +4,7 @@ from torch import nn, einsum
 from einops import rearrange, repeat, reduce
 import math
 from typing import Optional, Tuple, Union, List, Dict
-from block_module import Block
+from block_builder import Block
 
 
 class ConfigaModel(nn.Module):
@@ -22,7 +22,7 @@ class ConfigaModel(nn.Module):
             block = Block(block_config=block_config, input_streams=streams)
             output_streams = block.streams
             streams = output_streams
-            self.module_list.append(block)
+            self.block_list.append(block)
 
     def forward(self, _data):
 
