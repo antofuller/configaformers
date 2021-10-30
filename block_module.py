@@ -42,6 +42,14 @@ def get_module(module_type):
         raise "Layer type does not match any available types."
 
 
+def process_shape(_shape):
+    _string = "("  # start string
+    num_dims = len(_shape)
+    for i in range(num_dims):
+        _string += f"{_shape[i]}, "
+    return _string[:-2] + ")"
+
+
 class Block(nn.Module):
     def __init__(self,
                  block_config,
@@ -75,7 +83,7 @@ class Block(nn.Module):
                 _shape = mod_input[1]
                 _name = mod_input[0]
 
-                string_to_add = f" {_name} ({_shape}) -"
+                string_to_add = f" {_name} {process_shape(_shape)} -"
                 string_to_print += string_to_add
 
             string_to_print += f" Output(s):"
@@ -83,7 +91,7 @@ class Block(nn.Module):
                 _shape = mod_output[1]
                 _name = mod_output[0]
 
-                string_to_add = f" {_name} ({_shape}) -"
+                string_to_add = f" {_name} {process_shape(_shape)} -"
                 string_to_print += string_to_add
 
                 # Update stream
