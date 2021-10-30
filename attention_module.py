@@ -28,7 +28,7 @@ class MHADots(nn.Module):
                  ):
         super().__init__()
         """
-        MHA (Multi-Head Attention) Dots (dot-products)
+        MHA (Multi-Head Attention) Dots (dot-products) module
         """
         # Configure input(s) and output(s)
         self.input_name_queries = set_default(_look='input_name_queries', _dict=config, _default='x')
@@ -98,7 +98,7 @@ class MHAWeightedSum(nn.Module):
                  ):
         super().__init__()
         """
-        MHA (Multi-Head Attention) Weighted Summation
+        MHA (Multi-Head Attention) Weighted Summation module
         """
         # Configure input(s) and output(s)
         self.input_name_values = set_default(_look='input_name_values', _dict=config, _default='x')

@@ -11,18 +11,20 @@ class LinearProj(nn.Module):
                  _streams,
                  ):
         super().__init__()
+        """
+        Linear module
+        """
+        # Configure input(s) and output(s)
+        self.input_name = set_default(_look='input_name', _dict=config, _default='x')
+        self.output_name = set_default(_look='output_name', _dict=config, _default='x')
 
-        # Checking input_dim settings
-        assert 'input_dim' in config, f"Linear module was not given input_dim, it is needed!"
-        assert type(config['input_dim']) == int, f"Inside linear module, input_dim is a {type(config['input_dim'])}," \
-                                                 f" it needs to be an integer!"
-        self.input_dim = config['input_dim']
-
-        # Checking output_dim settings
-        assert 'output_dim' in config, f"Linear module was not given output_dim, it is needed!"
-        assert type(config['output_dim']) == int, f"Inside linear module, output_dim is a" \
+        self.input_dim = _streams[self.input_name]
+        if 'output_dim' in config:
+            assert type(config['output_dim']) == int, f"Inside linear module, output_dim is a" \
                                                   f" {type(config['output_dim'])}, it needs to be an integer!"
-        self.output_dim = config['output_dim']
+            self.output_dim = config['output_dim']
+        else:
+            self.output_dim = self.input_dim
 
         # Configuring input_norm and output_norm
         self.input_norm_bool, self.input_norm = init_norm(_key='input_norm',
@@ -34,9 +36,13 @@ class LinearProj(nn.Module):
 
         self.proj = nn.Linear(self.input_dim, self.output_dim)
 
-        # Configuring names
-        self.input_name = set_default(_look='input_name', _dict=config, _default='x')
-        self.output_name = set_default(_look='output_name', _dict=config, _default='x')
+        # Prepare streams info
+        self.streams_in_module = {'inputs': [[self.input_name, self.input_dim, 'feats'],
+                                             ],
+
+                                  'outputs': [[self.output_name, self.output_dim, 'feats'],
+                                              ]
+                                  }
 
     def forward(self, _data):
         if self.input_norm_bool:

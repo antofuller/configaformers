@@ -33,12 +33,14 @@ class Activation(nn.Module):
                  _streams,
                  ):
         super().__init__()
+        """
+        Activation module
+        """
+        # Configure input(s) and output(s)
+        self.input_name = set_default(_look='input_name', _dict=config, _default='x')
+        self.output_name = set_default(_look='output_name', _dict=config, _default='x')
 
-        # Checking input_dim settings
-        assert 'input_dim' in config, f"Activation was not given input_dim, it is needed!"
-        assert type(config['input_dim']) == int, f"Inside Activation, input_dim is a {type(config['input_dim'])}," \
-                                                 f" it needs to be an integer!"
-        self.input_dim = config['input_dim']
+        self.input_dim = _streams[self.input_name]
 
         # Checking input_norm settings
         self.input_norm_bool, self.input_norm = init_norm(_key='input_norm',
@@ -84,9 +86,13 @@ class Activation(nn.Module):
                                                             _config=config,
                                                             _dim=self.output_dim)
 
-        # Configuring names
-        self.input_name = set_default(_look='input_name', _dict=config, _default='x')
-        self.output_name = set_default(_look='output_name', _dict=config, _default='x')
+        # Prepare streams info
+        self.streams_in_module = {'inputs': [[self.input_name, self.input_dim, 'feats'],
+                                             ],
+
+                                  'outputs': [[self.output_name, self.output_dim, 'feats'],
+                                              ]
+                                  }
 
     def _split_and_multiply(self, _x):
         # Split into chunks of equal shape along the feature/last dimension

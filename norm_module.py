@@ -66,21 +66,27 @@ class Norm(nn.Module):
                  _streams,
                  ):
         super().__init__()
+        """
+        Norm module
+        """
+        # Configure input(s) and output(s)
+        self.input_name = set_default(_look='input_name', _dict=config, _default='x')
+        self.output_name = set_default(_look='output_name', _dict=config, _default='x')
 
-        # Checking input_dim settings
-        assert 'input_dim' in config, f"Norm module was not given input_dim, it is needed!"
-        assert type(config['input_dim']) == int, f"Inside norm module, input_dim is a {type(config['input_dim'])}," \
-                                                 f" it needs to be an integer!"
-        self.input_dim = config['input_dim']
-        self.output_dim = self.input_dim
+        self.input_dim = _streams[self.input_name]
+        self.output_dim = _streams[self.output_name]
 
-        # Configuring input_norm and output_norm
+        # Configuring norm
         norm_name = set_default(_look='norm_type', _dict=config, _default='layer_norm')
         self.norm = get_norm(norm_type=norm_name, dim=self.input_dim)
 
-        # Configuring names
-        self.input_name = set_default(_look='input_name', _dict=config, _default='x')
-        self.output_name = set_default(_look='output_name', _dict=config, _default='x')
+        # Prepare streams info
+        self.streams_in_module = {'inputs': [[self.input_name, self.input_dim, 'feats'],
+                                             ],
+
+                                  'outputs': [[self.output_name, self.output_dim, 'feats'],
+                                              ]
+                                  }
 
     def forward(self, _data):
         _data[self.output_name] = self.norm(_data[self.input_name])

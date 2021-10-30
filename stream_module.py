@@ -11,20 +11,24 @@ class MakeStream(nn.Module):
                  _streams,
                  ):
         super().__init__()
-
-        # Configuring names
+        """
+        Make data stream
+        """
+        # Configure input(s) and output(s)
         self.input_name = set_default(_look='input_name', _dict=config, _default='x')
-        assert 'output_name' in config.keys(), f"MakeStream must be given an output_name!"
-        assert type(config['output_name']) == str, f"In MakeStream, output_name must be a string," \
-                                                   f" but it is a {type(config['output_name'])}!"
-        self.output_name = config['output_name']
+        self.input_dim = _streams[self.input_name]
 
-        # Checking input_dim settings
-        assert 'input_dim' in config, f"MakeStream module was not given input_dim, it is needed!"
-        assert type(config['input_dim']) == int, f"Inside MakeStream module, input_dim is a {type(config['input_dim'])}," \
-                                                 f" it needs to be an integer!"
-        self.input_dim = config['input_dim']
-        self.output_dim = self.input_dim
+        assert 'output_name' in config.keys(), f"When making a stream, 'output_name' must be given!"
+        self.output_name = config['output_name']
+        self.output_dim = self.input_dim  # dims must match, since we are just making a copy
+
+        # Prepare streams info
+        self.streams_in_module = {'inputs': [[self.input_name, self.input_dim, 'feats'],
+                                             ],
+
+                                  'outputs': [[self.output_name, self.output_dim, 'feats'],
+                                              ]
+                                  }
 
     def forward(self, _data):
         _data[self.output_name] = _data[self.input_name].clone()
@@ -37,25 +41,35 @@ class MergeStreams(nn.Module):
                  _streams,
                  ):
         super().__init__()
-
-        # Configuring names
+        """
+        Merge data streams - can only merge 1 streams right now
+        """
+        # Configure input(s) and output(s)
         self.input_name_1 = set_default(_look='input_name_1', _dict=config, _default='x')
         self.input_name_2 = set_default(_look='input_name_2', _dict=config, _default='x')
         self.output_name = set_default(_look='output_name', _dict=config, _default='x')
         self.merge_name = set_default(_look='merge_type', _dict=config, _default='add')
 
-        # Checking input_dim settings
-        assert 'input_dim' in config, f"MergeStreams module was not given input_dim, it is needed!"
-        assert type(config['input_dim']) == int, f"Inside MergeStreams module, input_dim is a {type(config['input_dim'])}," \
-                                                 f" it needs to be an integer!"
-        self.input_dim = config['input_dim']
+        self.input_dim_1 = _streams[self.input_name_1]
+        self.input_dim_2 = _streams[self.input_name_2]
 
         if (self.merge_name == 'add') or (self.merge_name == 'mult'):
-            self.output_dim = self.input_dim
+            assert self.input_dim_1 == self.input_dim_2, f"When merging streams with 'add' or 'mult', the two input" \
+                                                         f" streams must have the same number of features."
+            self.output_dim = self.input_dim_1
         elif self.merge_name == 'cat':
-            self.output_dim = int(2*self.input_dim)
+            self.output_dim = self.input_dim_1 + self.input_dim_2
         else:
             print(f'{self.merge_name} did not match any options.')
+
+        # Prepare streams info
+        self.streams_in_module = {'inputs': [[self.input_name_1, self.input_dim_1, 'feats'],
+                                             [self.input_name_2, self.input_dim_2, 'feats'],
+                                             ],
+
+                                  'outputs': [[self.output_name, self.output_dim, 'feats'],
+                                              ]
+                                  }
 
     def forward(self, _data):
         if self.merge_name == 'add':
