@@ -78,25 +78,26 @@ class Block(nn.Module):
             module_inputs = _module.streams_in_module['inputs']
             module_outputs = _module.streams_in_module['outputs']
 
-            string_to_print = f"{module_config['type']}-> Input(s):"
+            string_to_print = f"{module_config['type']} -> Input(s):"
             for mod_input in module_inputs:
                 _shape = mod_input[1]
                 _name = mod_input[0]
 
-                string_to_add = f" {_name} {process_shape(_shape)} -"
+                string_to_add = f" {_name} {process_shape(_shape)},"
                 string_to_print += string_to_add
 
-            string_to_print += f" Output(s):"
+            string_to_print = string_to_print[:-1] + f" Output(s):"
             for mod_output in module_outputs:
                 _shape = mod_output[1]
                 _name = mod_output[0]
 
-                string_to_add = f" {_name} {process_shape(_shape)} -"
+                string_to_add = f" {_name} {process_shape(_shape)},"
                 string_to_print += string_to_add
 
                 # Update stream
                 streams[_name] = _shape
 
+            string_to_print = string_to_print[:-1]
             print(string_to_print)
 
             self.module_list.append(_module)
