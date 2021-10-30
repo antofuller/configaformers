@@ -9,6 +9,7 @@ from linear_module import LinearProj
 from activation_module import Activation
 from norm_module import Norm
 from stream_module import MakeStream, MergeStreams
+from embedding_module import Embedding
 
 
 def get_module(module_type):
@@ -33,6 +34,9 @@ def get_module(module_type):
 
     elif module_type == "merge_streams":
         return MergeStreams
+
+    elif module_type == "embedding":
+        return Embedding
 
     else:
         raise "Layer type does not match any available types."
