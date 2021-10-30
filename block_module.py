@@ -53,26 +53,23 @@ def process_shape(_shape):
 class Block(nn.Module):
     def __init__(self,
                  block_config,
+                 input_streams,
                  ):
         super().__init__()
         # Type checking
-        assert type(block_config['modules']) == list, f"Block's config should be a list, it was given a {type(block_config)}"
-        for module_config in block_config['modules']:
+        assert type(block_config) == list, f"Block's config should be a list, it was given a {type(block_config)}"
+        for module_config in block_config:
             assert type(module_config) == dict, f"Block's config should be a list of dicts, it was given a" \
                                                 f" {type(module_config)}, inside the list."
 
-        x_shape = ['B', 'L_x', block_config['input_dim']]
-        streams = {'x': x_shape}
+        self.streams = input_streams
         self.module_list = nn.ModuleList([])
-        for i_mod, module_config in enumerate(block_config['modules']):
+        for i_mod, module_config in enumerate(block_config):
             assert 'type' in module_config.keys(), f'Module not given a type'
             assert type('type') == str,  f"Module's type needs to be a string."
 
-            # if 'input_key' not in module_config.keys():
-            #     module_config['input_key'] = 'x'  # Defaults to receive x as input to the module
-
             _module = get_module(module_type=module_config['type'])
-            _module = _module(module_config, _streams=streams)
+            _module = _module(module_config, _streams=self.streams)
 
             # Update and print used streams
             module_inputs = _module.streams_in_module['inputs']
@@ -86,7 +83,7 @@ class Block(nn.Module):
                 string_to_add = f" {_name} {process_shape(_shape)},"
                 string_to_print += string_to_add
 
-            string_to_print = string_to_print[:-1] + f" Output(s):"
+            string_to_print = string_to_print[:-1] + f" - Output(s):"
             for mod_output in module_outputs:
                 _shape = mod_output[1]
                 _name = mod_output[0]
@@ -95,7 +92,7 @@ class Block(nn.Module):
                 string_to_print += string_to_add
 
                 # Update stream
-                streams[_name] = _shape
+                self.streams[_name] = _shape
 
             string_to_print = string_to_print[:-1]
             print(string_to_print)
