@@ -5,13 +5,13 @@ from einops import rearrange, repeat, reduce
 import math
 
 
-def set_default(_key,
+def set_default(_look,
                 _dict,
                 _default,
                 _type=str,
                 ):
-    if _key in _dict.keys():
-        out = _dict[_key]
+    if _look in _dict.keys():
+        out = _dict[_look]
     else:
         out = _default
 

@@ -8,11 +8,12 @@ from utils import set_default
 class MakeStream(nn.Module):
     def __init__(self,
                  config,
+                 _streams,
                  ):
         super().__init__()
 
         # Configuring names
-        self.input_name = set_default(_key='input_name', _dict=config, _default='x')
+        self.input_name = set_default(_look='input_name', _dict=config, _default='x')
         assert 'output_name' in config.keys(), f"MakeStream must be given an output_name!"
         assert type(config['output_name']) == str, f"In MakeStream, output_name must be a string," \
                                                    f" but it is a {type(config['output_name'])}!"
@@ -33,14 +34,15 @@ class MakeStream(nn.Module):
 class MergeStreams(nn.Module):
     def __init__(self,
                  config,
+                 _streams,
                  ):
         super().__init__()
 
         # Configuring names
-        self.input_name_1 = set_default(_key='input_name_1', _dict=config, _default='x')
-        self.input_name_2 = set_default(_key='input_name_2', _dict=config, _default='x')
-        self.output_name = set_default(_key='output_name', _dict=config, _default='x')
-        self.merge_name = set_default(_key='merge_type', _dict=config, _default='add')
+        self.input_name_1 = set_default(_look='input_name_1', _dict=config, _default='x')
+        self.input_name_2 = set_default(_look='input_name_2', _dict=config, _default='x')
+        self.output_name = set_default(_look='output_name', _dict=config, _default='x')
+        self.merge_name = set_default(_look='merge_type', _dict=config, _default='add')
 
         # Checking input_dim settings
         assert 'input_dim' in config, f"MergeStreams module was not given input_dim, it is needed!"

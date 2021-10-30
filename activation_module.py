@@ -30,6 +30,7 @@ def get_non_linearity(non_lin: str):
 class Activation(nn.Module):
     def __init__(self,
                  config,
+                 _streams,
                  ):
         super().__init__()
 
@@ -84,8 +85,8 @@ class Activation(nn.Module):
                                                             _dim=self.output_dim)
 
         # Configuring names
-        self.input_name = set_default(_key='input_name', _dict=config, _default='x')
-        self.output_name = set_default(_key='output_name', _dict=config, _default='x')
+        self.input_name = set_default(_look='input_name', _dict=config, _default='x')
+        self.output_name = set_default(_look='output_name', _dict=config, _default='x')
 
     def _split_and_multiply(self, _x):
         # Split into chunks of equal shape along the feature/last dimension

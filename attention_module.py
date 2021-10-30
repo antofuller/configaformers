@@ -24,21 +24,25 @@ def get_attention_function(attn_type: str):
 class MHADots(nn.Module):
     def __init__(self,
                  config,
+                 _streams,
                  ):
         super().__init__()
         """
         MHA (Multi-Head Attention) Dots (dot-products)
         """
+        # Configure input(s) and output(s)
+        self.input_name_queries = set_default(_look='queries', _dict=config, _default='x')
+        self.input_name_keys = set_default(_look='keys', _dict=config, _default='x')
+        self.output_name = set_default(_look='output', _dict=config, _default='attn_dots')
 
-        # Checking input_dim settings
-        assert 'input_dim' in config, f"MHADots module was not given input_dim, it is needed!"
-        assert type(config['input_dim']) == int, f"Inside MHADots module, input_dim is a {type(config['input_dim'])}," \
-                                                 f" it needs to be an integer!"
-        self.input_dim = config['input_dim']
+        self.input_dim_queries = _streams[self.input_name_queries]
+        self.input_dim_keys = _streams[self.input_name_keys]
+        assert self.input_dim_queries == self.input_dim_keys, f'Queries dim ({self.input_dim_queries}) must equal' \
+                                                              f' keys dim ({self.input_dim_keys})'
         self.output_dim = self.input_dim  # Set output_dim equal to input_dim for now (this isn't really correct)
 
         # Checking attention head settings (if num_heads is not given, default to 1)
-        self.num_heads = set_default(_key='num_heads', _dict=config, _default=1, _type=int)
+        self.num_heads = set_default(_look='num_heads', _dict=config, _default=1, _type=int)
         assert self.input_dim % self.num_heads == 0, "num_heads must divide evenly into input_dim!"
         self.head_dim = int(self.input_dim / self.num_heads)
         self.scale = self.head_dim ** -0.5
@@ -52,9 +56,13 @@ class MHADots(nn.Module):
                                                                   _config=config,
                                                                   _dim=self.head_dim)
 
-        self.input_name_queries = set_default(_key='input_name_queries', _dict=config, _default='queries')
-        self.input_name_keys = set_default(_key='input_name_keys', _dict=config, _default='keys')
-        self.output_name = set_default(_key='output_name', _dict=config, _default='attn_dots')
+        self.streams_in_module = {'inputs': [[self.input_name_queries, self.input_dim_queries, 'feats'],
+                                             [self.input_name_keys, self.input_dim_keys, 'feats'],
+                                             ],
+
+                                  'outputs': [[self.output_name, self.num_heads, 'heads'],
+                                              ]
+                                  }
 
     def forward(self, _data):
         # Attention operates on a set, so it must receive inputs of shape (bsz, seq_len, dim)
@@ -84,6 +92,7 @@ class MHADots(nn.Module):
 class MHAWeightedSum(nn.Module):
     def __init__(self,
                  config,
+                 _streams,
                  ):
         super().__init__()
         """
@@ -98,7 +107,7 @@ class MHAWeightedSum(nn.Module):
         self.output_dim = self.input_dim  # Set output_dim equal to input_dim (this is not configurable)
 
         # Checking attention head settings (if num_heads is not given, default to 1)
-        self.num_heads = set_default(_key='num_heads', _dict=config, _default=1, _type=int)
+        self.num_heads = set_default(_look='num_heads', _dict=config, _default=1, _type=int)
         assert self.input_dim % self.num_heads == 0, "num_heads must divide evenly into input_dim!"
         self.head_dim = int(self.input_dim / self.num_heads)
 
@@ -108,13 +117,13 @@ class MHAWeightedSum(nn.Module):
                                                                       _dim=self.head_dim)
 
         # Configure input/output names
-        self.input_name_values = set_default(_key='input_name_values', _dict=config, _default='values')
-        self.input_name_dots = set_default(_key='input_name_dots', _dict=config, _default='attn_dots')
-        self.output_name = set_default(_key='output_name', _dict=config, _default='x')
-        self.output_name_attn_scores = set_default(_key='output_name_attention_scores', _dict=config,
+        self.input_name_values = set_default(_look='input_name_values', _dict=config, _default='values')
+        self.input_name_dots = set_default(_look='input_name_dots', _dict=config, _default='attn_dots')
+        self.output_name = set_default(_look='output_name', _dict=config, _default='x')
+        self.output_name_attn_scores = set_default(_look='output_name_attention_scores', _dict=config,
                                                    _default=False, _type=None)
 
-        self.attention_type = set_default(_key='attn_function', _dict=config, _default='softmax')
+        self.attention_type = set_default(_look='attn_function', _dict=config, _default='softmax')
         self.attn_function = get_attention_function(attn_type=self.attention_type)
 
     def forward(self, _data):

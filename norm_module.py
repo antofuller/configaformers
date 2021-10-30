@@ -63,6 +63,7 @@ def get_norm(norm_type: str, dim: int):
 class Norm(nn.Module):
     def __init__(self,
                  config,
+                 _streams,
                  ):
         super().__init__()
 
@@ -74,12 +75,12 @@ class Norm(nn.Module):
         self.output_dim = self.input_dim
 
         # Configuring input_norm and output_norm
-        norm_name = set_default(_key='norm_type', _dict=config, _default='layer_norm')
+        norm_name = set_default(_look='norm_type', _dict=config, _default='layer_norm')
         self.norm = get_norm(norm_type=norm_name, dim=self.input_dim)
 
         # Configuring names
-        self.input_name = set_default(_key='input_name', _dict=config, _default='x')
-        self.output_name = set_default(_key='output_name', _dict=config, _default='x')
+        self.input_name = set_default(_look='input_name', _dict=config, _default='x')
+        self.output_name = set_default(_look='output_name', _dict=config, _default='x')
 
     def forward(self, _data):
         _data[self.output_name] = self.norm(_data[self.input_name])

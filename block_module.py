@@ -11,27 +11,27 @@ from norm_module import Norm
 from stream_module import MakeStream, MergeStreams
 
 
-def get_block(block_type):
-    block_type = block_type.lower()  # Make lowercase
-    if block_type == "activation":
+def get_module(module_type):
+    module_type = module_type.lower()  # Make lowercase
+    if module_type == "activation":
         return Activation
 
-    elif block_type == "linear":
+    elif module_type == "linear":
         return LinearProj
 
-    elif block_type == "mha_dots":
+    elif module_type == "mha_dots":
         return MHADots
 
-    elif block_type == "mha_sum":
+    elif module_type == "mha_sum":
         return MHAWeightedSum
 
-    elif block_type == "norm":
+    elif module_type == "norm":
         return Norm
 
-    elif block_type == "make_stream":
+    elif module_type == "make_stream":
         return MakeStream
 
-    elif block_type == "merge_streams":
+    elif module_type == "merge_streams":
         return MergeStreams
 
     else:
@@ -49,29 +49,35 @@ class Block(nn.Module):
             assert type(module_config) == dict, f"Block's config should be a list of dicts, it was given a" \
                                                 f" {type(module_config)}, inside the list."
 
-        # Build block by iterating over modules
-        current_dim = 0
+        streams = {'x': block_config['input_dim']}
         self.module_list = nn.ModuleList([])
         for i_mod, module_config in enumerate(block_config):
             assert 'type' in module_config.keys(), f'Module not given a type'
             assert type('type') == str,  f"Module's type needs to be a string."
 
-            if 'input_key' not in module_config.keys():
-                module_config['input_key'] = 'x'  # Defaults to receive x as input to the module
+            # if 'input_key' not in module_config.keys():
+            #     module_config['input_key'] = 'x'  # Defaults to receive x as input to the module
 
-            block = get_block(block_type=module_config['type'])
-            block = block(module_config)
+            _module = get_module(module_type=module_config['type'])
+            _module = _module(module_config, _streams=streams)
 
-            # Check dimensions between modules
-            input_dim = block.input_dim
+            # Update and print used streams
+            module_inputs = _module.streams_in_module['inputs']
+            module_outputs = _module.streams_in_module['outputs']
 
-            if i_mod != 0:
-                assert current_dim == input_dim, f'The output dim of the previous block (index: {i_mod-1})' \
-                                                 f' is {current_dim}, but the input dim of this block (index: {i_mod})' \
-                                                 f' is {input_dim}. They must match.'
-            current_dim = block.output_dim
+            string_to_print = f"{module_config['type']}-> Input(s):"
+            for mod_input in module_inputs:
+                string_to_add = f" {mod_input[0]} ({mod_input[1]} {mod_input[2]}) -"
+                string_to_print += string_to_add
 
-            self.module_list.append(block)
+            string_to_print += f" Output(s):"
+            for mod_output in module_outputs:
+                string_to_add = f" {mod_output[0]} ({mod_output[1]} {mod_output[2]}) -"
+                string_to_print += string_to_add
+
+            print(string_to_print)
+
+            self.module_list.append(_module)
 
     def forward(self, _data):
 

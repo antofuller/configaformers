@@ -8,6 +8,7 @@ from utils import set_default
 class LinearProj(nn.Module):
     def __init__(self,
                  config,
+                 _streams,
                  ):
         super().__init__()
 
@@ -34,8 +35,8 @@ class LinearProj(nn.Module):
         self.proj = nn.Linear(self.input_dim, self.output_dim)
 
         # Configuring names
-        self.input_name = set_default(_key='input_name', _dict=config, _default='x')
-        self.output_name = set_default(_key='output_name', _dict=config, _default='x')
+        self.input_name = set_default(_look='input_name', _dict=config, _default='x')
+        self.output_name = set_default(_look='output_name', _dict=config, _default='x')
 
     def forward(self, _data):
         if self.input_norm_bool:
