@@ -76,11 +76,12 @@ class Block(nn.Module):
 
             string_to_print += f" Output(s):"
             for mod_output in module_outputs:
-                string_to_add = f" {mod_output[0]} ({mod_output[1]}) -"
+                _shape = mod_output[1]
+                string_to_add = f" {mod_output[0]} ({_shape}) -"
                 string_to_print += string_to_add
 
                 # Update streams
-                streams[mod_output[0]] = mod_output[-1]
+                streams[mod_output[0]] = _shape[-1]
 
             print(string_to_print)
 
