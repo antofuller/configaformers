@@ -39,6 +39,7 @@ class MHADots(nn.Module):
         self.input_dim_keys = _streams[self.input_name_keys]
         assert self.input_dim_queries == self.input_dim_keys, f'Queries dim ({self.input_dim_queries}) must equal' \
                                                               f' keys dim ({self.input_dim_keys})'
+        self.input_dim = self.input_dim_queries
         self.output_dim = self.input_dim  # Set output_dim equal to input_dim for now (this isn't really correct)
 
         # Checking attention head settings (if num_heads is not given, default to 1)
