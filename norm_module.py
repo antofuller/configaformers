@@ -81,10 +81,10 @@ class Norm(nn.Module):
         self.norm = get_norm(norm_type=norm_name, dim=self.input_dim)
 
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name, self.input_dim, 'feats'],
+        self.streams_in_module = {'inputs': [[self.input_name, ['BSZ', 'LEN', self.input_dim]],
                                              ],
 
-                                  'outputs': [[self.output_name, self.output_dim, 'feats'],
+                                  'outputs': [[self.output_name, ['BSZ', 'LEN', self.output_dim]],
                                               ]
                                   }
 

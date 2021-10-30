@@ -58,11 +58,11 @@ class MHADots(nn.Module):
                                                                   _dim=self.head_dim)
 
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name_queries, self.input_dim_queries, 'feats'],
-                                             [self.input_name_keys, self.input_dim_keys, 'feats'],
+        self.streams_in_module = {'inputs': [[self.input_name_queries, ['BSZ', 'LEN', self.input_dim_queries]],
+                                             [self.input_name_keys, ['BSZ', 'CTX', self.input_dim_keys]],
                                              ],
 
-                                  'outputs': [[self.output_name, self.num_heads, 'heads'],
+                                  'outputs': [[self.output_name, ['BSZ', self.num_heads, 'LEN', 'CTX']],
                                               ]
                                   }
 
@@ -124,11 +124,11 @@ class MHAWeightedSum(nn.Module):
         self.attn_function = get_attention_function(attn_type=self.attention_type)
 
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name_values, self.input_dim_values, 'feats'],
-                                             [self.input_name_dots, self.num_heads, 'heads'],
+        self.streams_in_module = {'inputs': [[self.input_name_values, ['BSZ', 'CTX', self.input_dim_values]],
+                                             [self.input_name_values, ['BSZ', self.num_heads, 'LEN', 'CTX']],
                                              ],
 
-                                  'outputs': [[self.output_name, self.output_dim, 'feats'],
+                                  'outputs': [[self.output_name, ['BSZ', 'LEN', self.output_dim]],
                                               ]
                                   }
 

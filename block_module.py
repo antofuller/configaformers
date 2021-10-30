@@ -71,16 +71,16 @@ class Block(nn.Module):
 
             string_to_print = f"{module_config['type']}-> Input(s):"
             for mod_input in module_inputs:
-                string_to_add = f" {mod_input[0]} ({mod_input[1]} {mod_input[2]}) -"
+                string_to_add = f" {mod_input[0]} ({mod_input[1]}) -"
                 string_to_print += string_to_add
 
             string_to_print += f" Output(s):"
             for mod_output in module_outputs:
-                string_to_add = f" {mod_output[0]} ({mod_output[1]} {mod_output[2]}) -"
+                string_to_add = f" {mod_output[0]} ({mod_output[1]}) -"
                 string_to_print += string_to_add
 
                 # Update streams
-                streams[mod_output[0]] = mod_output[1]
+                streams[mod_output[0]] = mod_output[-1]
 
             print(string_to_print)
 

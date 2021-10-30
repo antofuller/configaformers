@@ -33,10 +33,10 @@ class Embedding(nn.Module):
         self.embedding = nn.Embedding(self.num_classes, self.output_dim)
 
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name, self.output_dim, 'feats'],
+        self.streams_in_module = {'inputs': [[self.input_name, ['BSZ', 'LEN']],
                                              ],
 
-                                  'outputs': [[self.output_name, self.output_dim, 'feats'],
+                                  'outputs': [[self.output_name, ['BSZ', 'LEN', self.output_dim]],
                                               ]
                                   }
 
