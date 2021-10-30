@@ -51,7 +51,7 @@ class Block(nn.Module):
 
         streams = {'x': block_config['input_dim']}
         self.module_list = nn.ModuleList([])
-        for i_mod, module_config in enumerate(block_config):
+        for i_mod, module_config in enumerate(block_config['modules']):
             assert 'type' in module_config.keys(), f'Module not given a type'
             assert type('type') == str,  f"Module's type needs to be a string."
 
