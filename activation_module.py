@@ -40,7 +40,7 @@ class Activation(nn.Module):
         self.input_name = set_default(_look='input_name', _dict=config, _default='x')
         self.output_name = set_default(_look='output_name', _dict=config, _default='x')
 
-        self.input_dim = _streams[self.input_name]
+        self.input_dim = _streams[self.input_name][-1]
         len_input = _streams[self.input_name][-2]
 
         # Checking input_norm settings

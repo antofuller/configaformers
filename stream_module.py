@@ -16,7 +16,7 @@ class MakeStream(nn.Module):
         """
         # Configure input(s) and output(s)
         self.input_name = set_default(_look='input_name', _dict=config, _default='x')
-        self.input_dim = _streams[self.input_name]
+        self.input_dim = _streams[self.input_name][-1]
         len_input = _streams[self.input_name][-2]
 
         assert 'output_name' in config.keys(), f"When making a stream, 'output_name' must be given!"
@@ -51,9 +51,9 @@ class MergeStreams(nn.Module):
         self.output_name = set_default(_look='output_name', _dict=config, _default='x')
         self.merge_name = set_default(_look='merge_type', _dict=config, _default='add')
 
-        self.input_dim_1 = _streams[self.input_name_1]
+        self.input_dim_1 = _streams[self.input_name_1][-1]
         len_input_1 = _streams[self.input_name_1][-2]
-        self.input_dim_2 = _streams[self.input_name_2]
+        self.input_dim_2 = _streams[self.input_name_2][-1]
         len_input_2 = _streams[self.input_name_2][-2]
 
         assert len_input_1 == len_input_2, f"Merging streams must have the same length!"
