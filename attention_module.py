@@ -130,7 +130,7 @@ class MHAWeightedSum(nn.Module):
 
         # Prepare streams info
         self.streams_in_module = {'inputs': [[self.input_name_values, ['BSZ', len_keys, self.input_dim_values]],
-                                             [self.input_name_values, ['BSZ', self.num_heads, len_queries, len_keys]],
+                                             [self.input_name_dots, ['BSZ', self.num_heads, len_queries, len_keys]],
                                              ],
 
                                   'outputs': [[self.output_name, ['BSZ', len_queries, self.output_dim]],
@@ -138,7 +138,7 @@ class MHAWeightedSum(nn.Module):
                                   }
 
         if self.output_name_attn_scores:
-            self.streams_in_module['outputs'].append([self.output_name_attn_scores, self.num_heads, 'heads'])
+            self.streams_in_module['outputs'].append([self.output_name_attn_scores, ['BSZ', self.num_heads, len_queries, len_keys]])
 
     def forward(self, _data):
         # Attention operates on a set, so it must receive inputs of shape (bsz, set_length, dim)
