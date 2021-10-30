@@ -27,7 +27,7 @@ class MakeStream(nn.Module):
         self.output_dim = self.input_dim
 
     def forward(self, _data):
-        _data[self.output_name] = _data[self.input_name]
+        _data[self.output_name] = _data[self.input_name].clone()
         return _data
 
 

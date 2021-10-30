@@ -31,9 +31,9 @@ class MHADots(nn.Module):
         MHA (Multi-Head Attention) Dots (dot-products)
         """
         # Configure input(s) and output(s)
-        self.input_name_queries = set_default(_look='queries', _dict=config, _default='x')
-        self.input_name_keys = set_default(_look='keys', _dict=config, _default='x')
-        self.output_name = set_default(_look='output', _dict=config, _default='attn_dots')
+        self.input_name_queries = set_default(_look='input_name_queries', _dict=config, _default='x')
+        self.input_name_keys = set_default(_look='input_name_keys', _dict=config, _default='x')
+        self.output_name = set_default(_look='output_name', _dict=config, _default='attn_dots')
 
         self.input_dim_queries = _streams[self.input_name_queries]
         self.input_dim_keys = _streams[self.input_name_keys]
@@ -57,6 +57,7 @@ class MHADots(nn.Module):
                                                                   _config=config,
                                                                   _dim=self.head_dim)
 
+        # Prepare streams info
         self.streams_in_module = {'inputs': [[self.input_name_queries, self.input_dim_queries, 'feats'],
                                              [self.input_name_keys, self.input_dim_keys, 'feats'],
                                              ],
@@ -99,36 +100,43 @@ class MHAWeightedSum(nn.Module):
         """
         MHA (Multi-Head Attention) Weighted Summation
         """
+        # Configure input(s) and output(s)
+        self.input_name_values = set_default(_look='input_name_values', _dict=config, _default='x')
+        self.input_name_dots = set_default(_look='input_name_dots', _dict=config, _default='attn_dots')
+        self.output_name = set_default(_look='output_name', _dict=config, _default='x')
+        self.output_name_attn_scores = set_default(_look='output_name_attention_scores', _dict=config,
+                                                   _default=False, _type=None)
 
-        # Checking input_dim settings
-        assert 'input_dim' in config, f"MHAWeightedSum module was not given input_dim, it is needed!"
-        assert type(config['input_dim']) == int, f"Inside MHAWeightedSum module, input_dim is a {type(config['input_dim'])}," \
-                                                 f" it needs to be an integer!"
-        self.input_dim = config['input_dim']
-        self.output_dim = self.input_dim  # Set output_dim equal to input_dim (this is not configurable)
+        self.input_dim_values = _streams[self.input_name_values]
+        self.output_dim = self.input_dim_values
+        self.num_heads = _streams[self.input_name_dots]  # For dots, this will be num_heads i.e. (dots.shape[1])
 
         # Checking attention head settings (if num_heads is not given, default to 1)
-        self.num_heads = set_default(_look='num_heads', _dict=config, _default=1, _type=int)
-        assert self.input_dim % self.num_heads == 0, "num_heads must divide evenly into input_dim!"
-        self.head_dim = int(self.input_dim / self.num_heads)
+        assert self.input_dim_values % self.num_heads == 0, "num_heads must divide evenly into input_dim!"
+        self.head_dim = int(self.input_dim_values / self.num_heads)
 
         # Checking norm_value_heads settings
         self.norm_value_heads_bool, self.norm_value_heads = init_norm(_key='norm_value_heads',
                                                                       _config=config,
                                                                       _dim=self.head_dim)
 
-        # Configure input/output names
-        self.input_name_values = set_default(_look='input_name_values', _dict=config, _default='values')
-        self.input_name_dots = set_default(_look='input_name_dots', _dict=config, _default='attn_dots')
-        self.output_name = set_default(_look='output_name', _dict=config, _default='x')
-        self.output_name_attn_scores = set_default(_look='output_name_attention_scores', _dict=config,
-                                                   _default=False, _type=None)
-
         self.attention_type = set_default(_look='attn_function', _dict=config, _default='softmax')
         self.attn_function = get_attention_function(attn_type=self.attention_type)
 
+        # Prepare streams info
+        self.streams_in_module = {'inputs': [[self.input_name_values, self.input_dim_values, 'feats'],
+                                             [self.input_name_dots, self.num_heads, 'heads'],
+                                             ],
+
+                                  'outputs': [[self.output_name, self.output_dim, 'feats'],
+                                              ]
+                                  }
+
+        if self.output_name_attn_scores:
+            self.streams_in_module['outputs'].append([self.output_name_attn_scores, self.num_heads, 'heads'])
+
     def forward(self, _data):
-        # Attention operates on a set, so it must receive inputs of shape (bsz, seq_len, dim)
+        # Attention operates on a set, so it must receive inputs of shape (bsz, set_length, dim)
         # We first reshape the values into (bsz, num_heads, length, head_dim), then we (optionally) normalize the head
         # features. This is not the same as normalizing the value features first, then reshaping.
 
@@ -141,6 +149,8 @@ class MHAWeightedSum(nn.Module):
 
         # Make attention map out of attention dots (usually just a softmax over the last dimension)
         attention_scores = self.attn_function(_data[self.input_name_dots], dim=-1)
+
+        # Return attention_scores if configured (these can be re-used in deeper layers, see LazyFormer)
         if self.output_name_attn_scores:
             _data[self.output_name_attn_scores] = attention_scores
 

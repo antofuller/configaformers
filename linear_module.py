@@ -42,7 +42,7 @@ class LinearProj(nn.Module):
         if self.input_norm_bool:
             _data[self.output_name] = self.input_norm(_data[self.input_name])
         elif self.output_name != self.input_name:
-            _data[self.output_name] = _data[self.input_name]
+            _data[self.output_name] = _data[self.input_name].clone()
 
         _data[self.output_name] = self.proj(_data[self.output_name])
 
