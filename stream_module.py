@@ -68,8 +68,8 @@ class MergeStreams(nn.Module):
             print(f'{self.merge_name} did not match any options.')
 
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name_1, ['BSZ', len_input_1, self.input_dim]],
-                                             [self.input_name_2, ['BSZ', len_input_2, self.input_dim]],
+        self.streams_in_module = {'inputs': [[self.input_name_1, ['BSZ', len_input_1, self.input_dim_1]],
+                                             [self.input_name_2, ['BSZ', len_input_2, self.input_dim_1]],
                                              ],
 
                                   'outputs': [[self.output_name, ['BSZ', len_input_1, self.output_dim]],
