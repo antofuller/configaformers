@@ -35,8 +35,11 @@ class MHADots(nn.Module):
         self.input_name_keys = set_default(_look='input_name_keys', _dict=config, _default='x')
         self.output_name = set_default(_look='output_name', _dict=config, _default='attn_dots')
 
-        self.input_dim_queries = _streams[self.input_name_queries]
-        self.input_dim_keys = _streams[self.input_name_keys]
+        self.input_dim_queries = _streams[self.input_name_queries][-1]
+        self.input_dim_keys = _streams[self.input_name_keys][-1]
+        len_queries = _streams[self.input_name_queries][-2]
+        len_keys = _streams[self.input_name_keys][-2]
+
         assert self.input_dim_queries == self.input_dim_keys, f'Queries dim ({self.input_dim_queries}) must equal' \
                                                               f' keys dim ({self.input_dim_keys})'
         self.input_dim = self.input_dim_queries
@@ -58,11 +61,11 @@ class MHADots(nn.Module):
                                                                   _dim=self.head_dim)
 
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name_queries, ['BSZ', 'LEN', self.input_dim_queries]],
-                                             [self.input_name_keys, ['BSZ', 'CTX', self.input_dim_keys]],
+        self.streams_in_module = {'inputs': [[self.input_name_queries, ['BSZ', len_queries, self.input_dim_queries]],
+                                             [self.input_name_keys, ['BSZ', len_keys, self.input_dim_keys]],
                                              ],
 
-                                  'outputs': [[self.output_name, ['BSZ', self.num_heads, 'LEN', 'CTX']],
+                                  'outputs': [[self.output_name, ['BSZ', self.num_heads, len_queries, len_keys]],
                                               ]
                                   }
 
@@ -107,9 +110,11 @@ class MHAWeightedSum(nn.Module):
         self.output_name_attn_scores = set_default(_look='output_name_attention_scores', _dict=config,
                                                    _default=False, _type=None)
 
-        self.input_dim_values = _streams[self.input_name_values]
+        self.input_dim_values = _streams[self.input_name_values][-1]
         self.output_dim = self.input_dim_values
-        self.num_heads = _streams[self.input_name_dots]  # For dots, this will be num_heads i.e. (dots.shape[1])
+        self.num_heads = _streams[self.input_name_dots][1]  # For dots, this will be num_heads i.e. (dots.shape[1])
+        len_queries = _streams[self.input_name_dots][-2]
+        len_keys = _streams[self.input_name_dots][-1]
 
         # Checking attention head settings (if num_heads is not given, default to 1)
         assert self.input_dim_values % self.num_heads == 0, "num_heads must divide evenly into input_dim!"
@@ -124,11 +129,11 @@ class MHAWeightedSum(nn.Module):
         self.attn_function = get_attention_function(attn_type=self.attention_type)
 
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name_values, ['BSZ', 'CTX', self.input_dim_values]],
-                                             [self.input_name_values, ['BSZ', self.num_heads, 'LEN', 'CTX']],
+        self.streams_in_module = {'inputs': [[self.input_name_values, ['BSZ', len_keys, self.input_dim_values]],
+                                             [self.input_name_values, ['BSZ', self.num_heads, len_queries, len_keys]],
                                              ],
 
-                                  'outputs': [[self.output_name, ['BSZ', 'LEN', self.output_dim]],
+                                  'outputs': [[self.output_name, ['BSZ', len_queries, self.output_dim]],
                                               ]
                                   }
 

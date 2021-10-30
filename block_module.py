@@ -53,7 +53,8 @@ class Block(nn.Module):
             assert type(module_config) == dict, f"Block's config should be a list of dicts, it was given a" \
                                                 f" {type(module_config)}, inside the list."
 
-        streams = {'x': block_config['input_dim']}
+        x_shape = ['B', 'L_x', block_config['input_dim']]
+        streams = {'x': x_shape}
         self.module_list = nn.ModuleList([])
         for i_mod, module_config in enumerate(block_config['modules']):
             assert 'type' in module_config.keys(), f'Module not given a type'
@@ -71,17 +72,22 @@ class Block(nn.Module):
 
             string_to_print = f"{module_config['type']}-> Input(s):"
             for mod_input in module_inputs:
-                string_to_add = f" {mod_input[0]} ({mod_input[1]}) -"
+                _shape = mod_input[1]
+                _name = mod_input[0]
+
+                string_to_add = f" {_name} ({_shape}) -"
                 string_to_print += string_to_add
 
             string_to_print += f" Output(s):"
             for mod_output in module_outputs:
                 _shape = mod_output[1]
-                string_to_add = f" {mod_output[0]} ({_shape}) -"
+                _name = mod_output[0]
+
+                string_to_add = f" {_name} ({_shape}) -"
                 string_to_print += string_to_add
 
-                # Update streams
-                streams[mod_output[0]] = _shape[-1]
+                # Update stream
+                streams[_name] = _shape
 
             print(string_to_print)
 

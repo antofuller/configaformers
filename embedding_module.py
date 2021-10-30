@@ -31,12 +31,13 @@ class Embedding(nn.Module):
         self.output_dim = config['output_dim']
 
         self.embedding = nn.Embedding(self.num_classes, self.output_dim)
+        len_embs = 'L_x'
 
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name, ['BSZ', 'LEN']],
+        self.streams_in_module = {'inputs': [[self.input_name, ['BSZ', len_embs]],
                                              ],
 
-                                  'outputs': [[self.output_name, ['BSZ', 'LEN', self.output_dim]],
+                                  'outputs': [[self.output_name, ['BSZ', len_embs, self.output_dim]],
                                               ]
                                   }
 

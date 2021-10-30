@@ -17,16 +17,17 @@ class MakeStream(nn.Module):
         # Configure input(s) and output(s)
         self.input_name = set_default(_look='input_name', _dict=config, _default='x')
         self.input_dim = _streams[self.input_name]
+        len_input = _streams[self.input_name][-2]
 
         assert 'output_name' in config.keys(), f"When making a stream, 'output_name' must be given!"
         self.output_name = config['output_name']
         self.output_dim = self.input_dim  # dims must match, since we are just making a copy
 
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name, ['BSZ', 'LEN', self.input_dim]],
+        self.streams_in_module = {'inputs': [[self.input_name, ['BSZ', len_input, self.input_dim]],
                                              ],
 
-                                  'outputs': [[self.output_name, ['BSZ', 'LEN', self.output_dim]],
+                                  'outputs': [[self.output_name, ['BSZ', len_input, self.output_dim]],
                                               ]
                                   }
 
@@ -51,7 +52,11 @@ class MergeStreams(nn.Module):
         self.merge_name = set_default(_look='merge_type', _dict=config, _default='add')
 
         self.input_dim_1 = _streams[self.input_name_1]
+        len_input_1 = _streams[self.input_name_1][-2]
         self.input_dim_2 = _streams[self.input_name_2]
+        len_input_2 = _streams[self.input_name_2][-2]
+
+        assert len_input_1 == len_input_2, f"Merging streams must have the same length!"
 
         if (self.merge_name == 'add') or (self.merge_name == 'mult'):
             assert self.input_dim_1 == self.input_dim_2, f"When merging streams with 'add' or 'mult', the two input" \
@@ -63,11 +68,11 @@ class MergeStreams(nn.Module):
             print(f'{self.merge_name} did not match any options.')
 
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name_1, self.input_dim_1, 'feats'],
-                                             [self.input_name_2, self.input_dim_2, 'feats'],
+        self.streams_in_module = {'inputs': [[self.input_name_1, ['BSZ', len_input_1, self.input_dim]],
+                                             [self.input_name_2, ['BSZ', len_input_2, self.input_dim]],
                                              ],
 
-                                  'outputs': [[self.output_name, self.output_dim, 'feats'],
+                                  'outputs': [[self.output_name, ['BSZ', len_input_1, self.output_dim]],
                                               ]
                                   }
 

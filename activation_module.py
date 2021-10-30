@@ -41,6 +41,7 @@ class Activation(nn.Module):
         self.output_name = set_default(_look='output_name', _dict=config, _default='x')
 
         self.input_dim = _streams[self.input_name]
+        len_input = _streams[self.input_name][-2]
 
         # Checking input_norm settings
         self.input_norm_bool, self.input_norm = init_norm(_key='input_norm',
@@ -87,10 +88,10 @@ class Activation(nn.Module):
                                                             _dim=self.output_dim)
 
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name, ['BSZ', 'LEN', self.input_dim]],
+        self.streams_in_module = {'inputs': [[self.input_name, ['BSZ', len_input, self.input_dim]],
                                              ],
 
-                                  'outputs': [[self.output_name, ['BSZ', 'LEN', self.output_dim]],
+                                  'outputs': [[self.output_name, ['BSZ', len_input, self.output_dim]],
                                               ]
                                   }
 

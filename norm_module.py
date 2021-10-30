@@ -74,6 +74,7 @@ class Norm(nn.Module):
         self.output_name = set_default(_look='output_name', _dict=config, _default='x')
 
         self.input_dim = _streams[self.input_name]
+        len_input = _streams[self.input_name][-2]
         self.output_dim = _streams[self.output_name]
 
         # Configuring norm
@@ -81,10 +82,10 @@ class Norm(nn.Module):
         self.norm = get_norm(norm_type=norm_name, dim=self.input_dim)
 
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name, ['BSZ', 'LEN', self.input_dim]],
+        self.streams_in_module = {'inputs': [[self.input_name, ['BSZ', len_input, self.input_dim]],
                                              ],
 
-                                  'outputs': [[self.output_name, ['BSZ', 'LEN', self.output_dim]],
+                                  'outputs': [[self.output_name, ['BSZ', len_input, self.output_dim]],
                                               ]
                                   }
 
