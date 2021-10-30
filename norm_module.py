@@ -75,7 +75,7 @@ class Norm(nn.Module):
 
         self.input_dim = _streams[self.input_name][-1]
         len_input = _streams[self.input_name][-2]
-        self.output_dim = _streams[self.output_name]
+        self.output_dim = self.input_dim
 
         # Configuring norm
         norm_name = set_default(_look='norm_type', _dict=config, _default='layer_norm')
