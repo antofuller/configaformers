@@ -7,14 +7,14 @@ from typing import Optional, Tuple, Union, List, Dict
 from block_builder import Block
 
 
-class ConfigaModel(nn.Module):
+class ConfigaFormer(nn.Module):
     def __init__(self,
                  model_config,
                  input_streams,
                  ):
         super().__init__()
         # Type checking
-        assert type(model_config['blocks']) == list, f"ConfigaModel's config should be a list, it was given a {type(model_config)}"
+        assert type(model_config['blocks']) == list, f"ConfigaFormer's config should be a list, it was given a {type(model_config)}"
 
         streams = input_streams
         self.block_list = nn.ModuleList([])
@@ -33,6 +33,7 @@ class ConfigaModel(nn.Module):
                 output_streams = block.streams
                 streams = output_streams
                 self.block_list.append(block)
+            print("\n")
 
     def forward(self, _data):
 
