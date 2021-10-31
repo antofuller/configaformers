@@ -22,10 +22,12 @@ class ConfigaModel(nn.Module):
             block_config = _block['config']
             N = _block['repeat']
             print(f"Block #{i_block+1}, {N}x")
-            block = Block(block_config=block_config, input_streams=streams)
-            output_streams = block.streams
-            streams = output_streams
-            self.block_list.append(block)
+
+            for _ in range(N):
+                block = Block(block_config=block_config, input_streams=streams)
+                output_streams = block.streams
+                streams = output_streams
+                self.block_list.append(block)
 
     def forward(self, _data):
 
