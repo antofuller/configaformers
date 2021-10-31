@@ -18,7 +18,7 @@ class AttentionOffset(nn.Module):
         """
         # Configure input(s) and output(s)
         self.input_name_attn_dots = set_default(_look='input_name_attn_dots', _dict=config, _default='attn_dots')
-        self.input_name_attn_offset = set_default(_look='input_name_attn_offset', _dict=config, _default='attn_bias')
+        self.input_name_attn_offset = set_default(_look='input_name_attn_offset', _dict=config, _default='attn_offset')
         self.output_name = set_default(_look='output_name', _dict=config, _default='attn_dots')
 
         # attn_dots will be of shape (bsz, num_heads, length_queries, length_keys)
@@ -26,8 +26,8 @@ class AttentionOffset(nn.Module):
         len_queries = _streams[self.input_name_attn_dots][-2]
         len_keys = _streams[self.input_name_attn_dots][-1]
 
-        num_heads_bias = _streams[self.input_name_attn_bias][1]
-        assert num_heads_bias == self.num_heads, f'num_heads in the attention bias ({num_heads_bias}) must be ' \
+        num_heads_offset = _streams[self.input_name_attn_offset][1]
+        assert num_heads_offset == self.num_heads, f'num_heads in the attention bias ({num_heads_offset}) must be ' \
                                                  f'equal to num_heads in the attention dots ({self.num_heads})!'
 
         # Prepare streams info
