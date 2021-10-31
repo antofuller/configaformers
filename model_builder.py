@@ -29,7 +29,7 @@ class ConfigaModel(nn.Module):
                 else:
                     _print = False
 
-                block = Block(block_config=block_config, input_streams=streams, print=_print)
+                block = Block(block_config=block_config, input_streams=streams, print_streams=_print)
                 output_streams = block.streams
                 streams = output_streams
                 self.block_list.append(block)
