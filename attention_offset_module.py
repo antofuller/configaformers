@@ -119,6 +119,6 @@ def get_alibi(num_heads,
     for n in range(num_heads):
         offset_list.append(offset_template*slopes[n])
 
-    offsets = torch.cat(offset_list, dim=0)
+    offsets = torch.cat(offset_list, dim=1)
     return offsets
 
