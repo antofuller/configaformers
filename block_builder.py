@@ -10,7 +10,7 @@ from activation_module import Activation
 from norm_module import Norm
 from stream_module import MakeStream, MergeStreams
 from embedding_module import Embedding
-from attention_bias_module import AttentionBias
+from attention_offset_module import AttentionOffset
 
 
 def get_module(module_type):
@@ -39,8 +39,8 @@ def get_module(module_type):
     elif module_type == "embedding":
         return Embedding
 
-    elif module_type == 'attention_bias':
-        return AttentionBias
+    elif module_type == 'attention_offset':
+        return AttentionOffset
 
     else:
         raise "Layer type does not match any available types."
