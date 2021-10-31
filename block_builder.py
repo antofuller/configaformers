@@ -54,6 +54,7 @@ class Block(nn.Module):
     def __init__(self,
                  block_config,
                  input_streams,
+                 print,
                  ):
         super().__init__()
         # Type checking
@@ -95,7 +96,8 @@ class Block(nn.Module):
                 self.streams[_name] = _shape
 
             string_to_print = string_to_print[:-1]
-            print(string_to_print)
+            if print:
+                print(string_to_print)
 
             self.module_list.append(_module)
 

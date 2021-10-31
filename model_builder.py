@@ -23,8 +23,13 @@ class ConfigaModel(nn.Module):
             N = _block['repeat']
             print(f"Block #{i_block+1}, {N}x")
 
-            for _ in range(N):
-                block = Block(block_config=block_config, input_streams=streams)
+            for n in range(N):
+                if n == 0:
+                    _print = True
+                else:
+                    _print = False
+
+                block = Block(block_config=block_config, input_streams=streams, print=_print)
                 output_streams = block.streams
                 streams = output_streams
                 self.block_list.append(block)
