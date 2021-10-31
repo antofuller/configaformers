@@ -23,7 +23,7 @@ class AttentionBias(nn.Module):
         # attn_dots will be of shape (bsz, num_heads, length_queries, length_keys)
         self.num_heads = _streams[self.input_name_attn_dots][1]
         len_queries = _streams[self.input_name_attn_dots][-2]
-        len_keys = _streams[self._attn_dots][-1]
+        len_keys = _streams[self.input_name_attn_dots][-1]
 
         num_heads_bias = _streams[self.input_name_attn_bias][1]
         assert num_heads_bias == self.num_heads, f'num_heads in the attention bias ({num_heads_bias}) must be ' \
