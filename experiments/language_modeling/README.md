@@ -112,4 +112,15 @@ This plot is surprising to me. It shows that, at the 500M token mark, token shif
 
 This confirms that, at least for configurations tested, skipping the token shift operation every 2nd layer modestly improves performance; it also shows that we can generally rely on single training runs as the standard deviation across 5 runs is small. However, I do expect this result to change if we alter the shift config from [384, 384] to something like [368, 400], which shifts fewer features. I suspect that a 50/50 shift ratio, when shifting only 1 token is "shifting too much" if used at every layer. 
 
+Next, I tested my intuition by varying the amount of features shifted - this time at every layer. Shift=[400, 368] performed worse than the 50/50 baseline, which makes sense since we are incorporating more features from the previous timestep than the current timestep. Additionally, shifting less features seemed to improve performance, even surpassing our previous record held by shifting every second layer. There is room to confirm these results by running the experiments more than twice; the shift=[100, 668] result seems a bit weird. Why would shift=[68, 700] be better than shift=[100, 668]. Seems like experimental noise to me...
+
+| Config  | Mean Loss on tokens 400-500M | Num Runs |
+| ------------- | ------------- | ------------- |
+| AliBi, Shift=[400, 368]  | 3.645  | 2 |
+| AliBi, Shift=[368, 400]  | 3.638  | 2 |
+| AliBi, Shift=[308, 460]  | 3.630  | 2 |
+| AliBi, Shift=[256, 512]  | 3.629  | 2 |
+| AliBi, Shift=[168, 600]  | <b>3.626</b>  | 2 |
+| AliBi, Shift=[100, 668]  | 3.631  | 2 |
+| AliBi, Shift=[68, 700]  | 3.628  | 2 |
 ## To be continued...
