@@ -5,7 +5,7 @@ Loss values for every single token, for every config, will be released to suppor
 
 The two figures below are from the baseline/default model architecture with dim_model=768, and 12 transformer layers (128M non-embedding params).  
 
-<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/baseline_position.PNG">
+<img src="https://github.com/antofuller/configaformers/blob/main/experiments/language_modeling/images/baseline_position.PNG">
 
 Figure 1
 
@@ -15,7 +15,7 @@ There are 2 observations that stick out. First, notice that early on in training
 
 Let's do a quick investigation of the role of token type on the strange loss values with contexts less than 30, noted above. 
 
-<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/first_30_positions.PNG">
+<img src="https://github.com/antofuller/configaformers/blob/main/experiments/language_modeling/images/first_30_positions.PNG">
 
 Figure 2
 
@@ -24,7 +24,7 @@ The y-axis plots our baseline loss values at position x, normalized between 0 an
 We should also note that AliBi outperforms RoPE after position 4, but at much longer contexts, RoPE outperforms AliBi (not plotted). This implies that AliBi has greater local bias, and does not benefit from more context as much as RoPE. This result would likely change by adjusting either RoPE, or AliBi's parameters. This is not surprising to me, so it won't be further investigated right now. 
 
 
-<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/baseline_vocab.PNG">
+<img src="https://github.com/antofuller/configaformers/blob/main/experiments/language_modeling/images/baseline_vocab.PNG">
 
 Figure 3
 
@@ -38,7 +38,7 @@ This section will explore various token shifting configurations while using [rot
 
 Token shifting essentially slices up each hidden state (along the feature dimension) in the sequence, and swaps out some number of features with neighboring hidden states. It may be best understood by visualizing the operation. Here is a drawing brought to you by MS Paint ;)
 
-<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/token_shifting.png">
+<img src="https://github.com/antofuller/configaformers/blob/main/experiments/language_modeling/images/token_shifting.png">
 
 Above, we have 3 tokens ('soccer', 'is', and 'better') which are each converted into an embedding of size 100 (these are the features representing the corresponding token). The token shifting operation is then performed, which first slices the embeddings, then shifts them over 1 position. Using our notation, this would look like shift=[40, 60]. So, of the 100 features, 60 are kept, and 40 are replaced by 40 features from the previous position (if there is no previous token, the features will be padded with zeros). This token shifting operation is essentially a convolution, and has been used in computer vision publications. For NLP, this simple technique hasn't been published but EleutherAI's discord chat recommends it. For the general case, our token shift notation is:
 
@@ -46,13 +46,13 @@ num_features(t) = [num_features(t-n), ... , num_features(t-1), num_features(t)]
 
 
 
-<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/768_shifting.PNG">
+<img src="https://github.com/antofuller/configaformers/blob/main/experiments/language_modeling/images/768_shifting.PNG">
 
 Figure 4
 
 It seems that token shifting converges faster for all settings. Next, we can see (while squinting) that blue is no better than black (baseline) at 500M tokens. Comparing blue to orange we can conclude that blue likely didn't keep enough features from t (256 vs 384 for orange). Lastly, red is the clear winner - simply shifting half of the representation from the previous position in the sequence. We can safely conclude that token shifting helps, but too much shifting hurts, or at least offsets the advantages. These findings align with rumors from EleutherAI's discord. 
 
-<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/768_wider.PNG">
+<img src="https://github.com/antofuller/configaformers/blob/main/experiments/language_modeling/images/768_wider.PNG">
 
 Figure 5
 
@@ -76,7 +76,7 @@ The two lowest loss ratios are for the two models that did not use token shiftin
 
 Similar to the previous section, we will investigate various token shifting configurations while using the [AliBi positional encoding strategy](https://arxiv.org/abs/2108.12409). AliBi is a new position encoding technique that is very simple, intuitive, and is reported to perform on par with RoPE. We use AliBi's default parameters unless stated otherwise.
 
-<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/768_shifting_alibi_v2.PNG">
+<img src="https://github.com/antofuller/configaformers/blob/main/experiments/language_modeling/images/768_shifting_alibi_v2.PNG">
 
 Figure 6
 
@@ -84,13 +84,13 @@ This is our first surprising result - not that our baseline RoPE and baseline Al
 
 Additionally, performing the token shift operation only on the intermediate FFN representations, shown in green and cyan, clearly hurts performance. So it seems that token shifting inside the FFN limits the FFN's ability to process the attention output (since the FFN is directly after the attention block). 
 
-<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/768_shift_add_mult.PNG">
+<img src="https://github.com/antofuller/configaformers/blob/main/experiments/language_modeling/images/768_shift_add_mult.PNG">
 
 Figure 7
 
 Above, we play around with different ways of performing the token shift operation, and compare them to black and blue (as baselines). The mult/add refers to the operation between the token shifted and non-token shifted representations, and the sigmoid (if applied) is performed only on the token shifted representations. None of them improve on our baseline (black), which implies that performing these more complex interactions between neighboring tokens confuses the model by entangling representations. These experiments were motivated by the success of some gating operations (like gated linear units), although they may work with an explicit GLU - albeit at the cost of extra parameters. Finally, one minor observation here is that performing a sigmoid on the shifted tokens helps when multiplying, but hurts when adding.
 
-<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/768_shift_locations.PNG">
+<img src="https://github.com/antofuller/configaformers/blob/main/experiments/language_modeling/images/768_shift_locations.PNG">
 
 Figure 8
 
@@ -98,7 +98,7 @@ Changing the location of the token shift operation seems to significantly alter 
 
 Next we will experiment with token shifting at certain layers - but only prior to attention, as FFN token shifting doesn't seem to work well. 
 
-<img src="https://github.com/muddyrains/muddy-nets/blob/main/experiments/images/768_shift_more_locations.PNG">
+<img src="https://github.com/antofuller/configaformers/blob/main/experiments/language_modeling/images/768_shift_more_locations.PNG">
 
 Figure 9
 
