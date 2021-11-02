@@ -4,4 +4,4 @@ A python library for highly configurable transformers - easing model architectur
 Special thanks to lucidrains (https://github.com/lucidrains) and Kharr.
 
 ## Usage
-TBD
+Coming very soon...
