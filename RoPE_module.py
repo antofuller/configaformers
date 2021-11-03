@@ -19,6 +19,7 @@ def get_rope(config):
                 t = torch.arange(max_length).type_as(inv_freq)  # count up from 0 to (max_seq_len - 1)
                 freqs = torch.einsum('i , j -> i j', t, inv_freq)  # multiply t with inv_freq, shape (max_seq_len, dim/2)
                 RoPE_emb = torch.cat((freqs, freqs), dim=-1)  # repeat freqs once, shape (max_seq_len, dim)
+                RoPE_emb = rearrange(RoPE_emb, 'n d -> () () n d')
                 rope_dict[f'rope_{rotate_dim}'] = RoPE_emb
 
     return rope_dict
@@ -71,8 +72,12 @@ class RoPE(nn.Module):
         return x
 
     def forward(self, _data):
-        _data[self.output_name] = self.apply_rotary_pos_emb(x=_data[self.input_name],
-                                                            frequencies=_data[f'rope_{self.rotate_dim}'])
+        rotate_features = _data[self.input_name][..., :self.rotate_dim]
+        keep_features = _data[self.input_name][..., self.rotate_dim:]
+
+        rotate_features = self.apply_rotary_pos_emb(x=rotate_features, frequencies=_data[f'rope_{self.rotate_dim}'])
+        _data[self.output_name] = torch.cat([rotate_features, keep_features], dim=-1)
+
         return _data
 
 
