@@ -44,7 +44,7 @@ class ConfigaFormer(nn.Module):
         if self.rope_dict != {}:
             # Get input device
             for _input in _data:
-                device = _input.device
+                device = _data[_input].device
                 break
 
             for rope_key in self.rope_dict.keys():
