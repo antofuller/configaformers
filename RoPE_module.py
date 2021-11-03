@@ -6,7 +6,7 @@ from utils import set_default
 
 def get_rope(config):
     rope_dict = {}
-    for i_block, _block in enumerate(config['blocks']):
+    for i_block, _block in enumerate(config):
         block_config = _block['config']
         for i_mod, module_config in enumerate(block_config):
             if module_config['type'] == 'rope':
