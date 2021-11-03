@@ -42,9 +42,14 @@ class ConfigaFormer(nn.Module):
     def forward(self, _data):
         # if rope embeds exist, then add them to _data
         if self.rope_dict != {}:
+            # Get input device
+            for _input in _data:
+                device = _input.device
+                break
+
             for rope_key in self.rope_dict.keys():
-                _data[rope_key] = self.rope_dict[rope_key]
-                print(f"Added {rope_key} to _data")
+                _data[rope_key] = self.rope_dict[rope_key].to(device)
+                # print(f"Added {rope_key} to _data")
 
         for i_block, _block in enumerate(self.block_list):
             _data = _block(_data)
