@@ -38,7 +38,7 @@ class RoPE(nn.Module):
         self.output_name = set_default(_look='output_name', _dict=config, _default='x')
 
         self.input_dim = _streams[self.input_name][-1]
-        input_shape = _streams[self.input_name_queries]  # will be the same as output shape
+        input_shape = _streams[self.input_name]  # will be the same as output shape
 
         self.rotate_dim = config['rotate_dim']
         max_length = set_default(_look='max_length', _dict=config, _default=2048, _type=int)
