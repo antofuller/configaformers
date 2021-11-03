@@ -5,6 +5,7 @@ from einops import rearrange, repeat, reduce
 import math
 from typing import Optional, Tuple, Union, List, Dict
 from block_builder import Block
+from RoPE_module import get_rope
 
 
 class ConfigaFormer(nn.Module):
@@ -15,6 +16,9 @@ class ConfigaFormer(nn.Module):
         super().__init__()
         # Type checking
         assert type(model_config['blocks']) == list, f"ConfigaFormer's config should be a list, it was given a {type(model_config)}"
+
+        # create rope embeds
+        self.rope_dict = get_rope(model_config['blocks'])
 
         streams = input_streams
         self.block_list = nn.ModuleList([])
@@ -36,6 +40,11 @@ class ConfigaFormer(nn.Module):
             print("\n")
 
     def forward(self, _data):
+        # if rope embeds exist, then add them to _data
+        if self.rope_dict != {}:
+            for rope_key in self.rope_dict.keys():
+                _data[rope_key] = self.rope_dict[rope_key]
+                print(f"Added {rope_key} to _data")
 
         for i_block, _block in enumerate(self.block_list):
             _data = _block(_data)
