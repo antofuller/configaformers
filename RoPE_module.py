@@ -9,7 +9,7 @@ def get_rope(config):
     for i_block, _block in enumerate(config):
         block_config = _block['config']
         for i_mod, module_config in enumerate(block_config):
-            if module_config['type'] == 'rope':
+            if module_config['type'].lower() == 'rope':
                 assert 'rotate_dim' in module_config.keys(), f"RoPE module must be given rotate_dim"
                 rotate_dim = module_config['rotate_dim']
                 max_length = set_default(_look='max_length', _dict=module_config, _default=2048, _type=int)

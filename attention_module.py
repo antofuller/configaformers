@@ -40,29 +40,22 @@ class MHADots(nn.Module):
         len_queries = _streams[self.input_name_queries][-2]
         len_keys = _streams[self.input_name_keys][-2]
 
+        self.num_heads = _streams[self.input_name_queries][1]
+        num_heads_keys = _streams[self.input_name_keys][1]
+
         assert self.input_dim_queries == self.input_dim_keys, f'Queries dim ({self.input_dim_queries}) must equal' \
                                                               f' keys dim ({self.input_dim_keys})'
+
+        assert self.num_heads == num_heads_keys, f'Queries num_heads ({self.num_heads}) must equal' \
+                                                              f' keys num_heads ({num_heads_keys})'
+
         self.input_dim = self.input_dim_queries
         self.output_dim = self.input_dim  # Set output_dim equal to input_dim for now (this isn't really correct)
-
-        # Checking attention head settings (if num_heads is not given, default to 1)
-        self.num_heads = set_default(_look='num_heads', _dict=config, _default=1, _type=int)
-        assert self.input_dim % self.num_heads == 0, "num_heads must divide evenly into input_dim!"
-        self.head_dim = int(self.input_dim / self.num_heads)
-        self.scale = self.head_dim ** -0.5
-
-        # Checking norm_query_heads settings
-        self.norm_query_heads_bool, self.norm_query_heads = init_norm(_key='norm_query_heads',
-                                                                      _config=config,
-                                                                      _dim=self.head_dim)
-        # Checking key_value_heads settings
-        self.norm_key_heads_bool, self.norm_key_heads = init_norm(_key='norm_key_heads',
-                                                                  _config=config,
-                                                                  _dim=self.head_dim)
+        self.scale = self.input_dim_queries ** -0.5
 
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name_queries, ['BSZ', len_queries, self.input_dim_queries]],
-                                             [self.input_name_keys, ['BSZ', len_keys, self.input_dim_keys]],
+        self.streams_in_module = {'inputs': [[self.input_name_queries, ['BSZ', self.num_heads, len_queries, self.input_dim_queries]],
+                                             [self.input_name_keys, ['BSZ', self.num_heads, len_keys, self.input_dim_keys]],
                                              ],
 
                                   'outputs': [[self.output_name, ['BSZ', self.num_heads, len_queries, len_keys]],
@@ -70,26 +63,11 @@ class MHADots(nn.Module):
                                   }
 
     def forward(self, _data):
-        # Attention operates on a set, so it must receive inputs of shape (bsz, seq_len, dim)
-        # We first reshape the tensors into (bsz, num_heads, length, head_dim), then we (optionally) normalize the head
-        # features. This is not the same as normalizing the query or key features first, then reshaping.
-
-        # Prepare queries
-        queries = rearrange(_data[self.input_name_queries],
-                            'batch length_queries (num_heads head_dim) -> batch num_heads length_queries head_dim',
-                            num_heads=self.num_heads)
-        if self.norm_query_heads_bool:
-            queries = self.norm_query_heads(queries)
-
-        # Prepare keys
-        keys = rearrange(_data[self.input_name_keys],
-                         'batch length_keys (num_heads head_dim) -> batch num_heads length_keys head_dim',
-                         num_heads=self.num_heads)
-        if self.norm_key_heads_bool:
-            keys = self.norm_key_heads(keys)
+        # Attention operates on a set, so it must receive inputs of shape (bsz, num_heads, length, head_dim)
 
         # Perform attention operation, and insert into _data
-        _data[self.output_name] = einsum('b h i d, b h j d -> b h i j', queries, keys) * self.scale
+        _data[self.output_name] = einsum('b h i d, b h j d -> b h i j',
+                                         _data[self.input_name_queries], _data[self.input_name_keys]) * self.scale
 
         return _data
 
