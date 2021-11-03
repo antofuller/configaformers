@@ -11,6 +11,7 @@ from norm_module import Norm
 from stream_module import MakeStream, MergeStreams
 from embedding_module import Embedding
 from attention_offset_module import AttentionOffset
+from RoPE_module import RoPE
 
 
 def get_module(module_type):
@@ -41,6 +42,9 @@ def get_module(module_type):
 
     elif module_type == 'attention_offset':
         return AttentionOffset
+
+    elif module_type == 'rope':
+        return RoPE
 
     else:
         raise "Layer type does not match any available types."
