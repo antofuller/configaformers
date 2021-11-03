@@ -155,16 +155,16 @@ Before running, we need to get the attention offset (in this case, AliBi with a 
 ```
 from attention_offset_module import get_alibi
 
-attn_offset = get_alibi(num_heads=12).cuda()
+attn_offset = get_alibi(num_heads=12)
 ```
 
 Now we can use the model:
 
 ```
 input_data = {'emb_ids': batch_ids.view(bsz, 1024).cuda(),
-              'attn_offset': attn_offset}
+              'attn_offset': attn_offset.cuda()}
 
-logits = model(input_data)['x'].view(-1, 50257)
+logits = model(input_data)['x'].view(bsz, 1024, 50257)
 ```
 
 # TODO
