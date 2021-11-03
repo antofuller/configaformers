@@ -12,6 +12,7 @@ from stream_module import MakeStream, MergeStreams
 from embedding_module import Embedding
 from attention_offset_module import AttentionOffset
 from RoPE_module import RoPE
+from rearranging_module import MakeHeads
 
 
 def get_module(module_type):
@@ -45,6 +46,9 @@ def get_module(module_type):
 
     elif module_type == 'rope':
         return RoPE
+
+    elif module_type == 'make_heads':
+        return MakeHeads
 
     else:
         raise "Layer type does not match any available types."
