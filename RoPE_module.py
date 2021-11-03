@@ -16,7 +16,7 @@ def get_rope(config):
 
                 # Create RoPE frequencies
                 inv_freq = 1. / (10000 ** (torch.arange(0, rotate_dim, 2).float() / rotate_dim))
-                t = torch.arange(max_length).type_as(inv_freq).cuda()  # count up from 0 to (max_seq_len - 1)
+                t = torch.arange(max_length).type_as(inv_freq)  # count up from 0 to (max_seq_len - 1)
                 freqs = torch.einsum('i , j -> i j', t, inv_freq)  # multiply t with inv_freq, shape (max_seq_len, dim/2)
                 RoPE_emb = torch.cat((freqs, freqs), dim=-1)  # repeat freqs once, shape (max_seq_len, dim)
                 rope_dict[f'rope_{rotate_dim}'] = RoPE_emb
