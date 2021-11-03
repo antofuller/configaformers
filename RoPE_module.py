@@ -72,11 +72,8 @@ class RoPE(nn.Module):
         return x
 
     def forward(self, _data):
-        rotate_features = _data[self.input_name][..., :self.rotate_dim]
-        keep_features = _data[self.input_name][..., self.rotate_dim:]
-
-        rotate_features = self.apply_rotary_pos_emb(x=rotate_features, frequencies=_data[f'rope_{self.rotate_dim}'])
-        _data[self.output_name] = torch.cat([rotate_features, keep_features], dim=-1)
+        _data[self.output_name] = self.apply_rotary_pos_emb(x=_data[self.input_name],
+                                                            frequencies=_data[f'rope_{self.rotate_dim}'])
 
         return _data
 
