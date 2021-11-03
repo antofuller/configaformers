@@ -167,7 +167,7 @@ input_data = {'emb_ids': batch_ids.view(bsz, 1024).cuda(),
 logits = model(input_data)['x'].view(-1, 50257)
 ```
 
-#TODO: 
+# TODO
 1. Token shifting, down/up sampling
 2. Create higher abstractions for FFN and self-attention
 3. everything else
