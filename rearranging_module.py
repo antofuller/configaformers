@@ -98,7 +98,7 @@ class SequenceShift(nn.Module):
         self.instructions = config['instructions']
         total_features = 0
         for pos_ins in self.instructions:
-            start_idx, end_idx = self.instructions[pos_ins]['features']
+            start_idx, end_idx = pos_ins['features']
             total_features += (end_idx - start_idx)
 
         self.output_dim = total_features
@@ -127,7 +127,7 @@ class SequenceShift(nn.Module):
     def forward(self, _data):
         splitted = []
         for pos_ins in self.instructions:
-            start_idx, end_idx = self.instructions[pos_ins]['features']
+            start_idx, end_idx = pos_ins['features']
             shift_amt = self.instructions[pos_ins]['relative_pos']  # Number of sequence positions to shift by
 
             chunk = _data[self.input_name][..., start_idx:end_idx]  # Select features and remove them from input tensor
