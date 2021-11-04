@@ -16,12 +16,3 @@ def set_default(_look,
     if _type:
         assert type(out) == _type, f"{out} is type {type(out)}, but should be type {_type}"
     return out
-
-
-x = TokenShift_k(x)
-a = torch.zeros_like(x)
-a[:, ::k, :] = Attention(ln_1(x[:, ::k, :]))
-x = x + a
-m = torch.zeros_like(x)
-m[:, ::k, :] = FFN(ln_2(x[:, ::k, :]))
-x = x + m
