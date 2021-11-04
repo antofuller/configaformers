@@ -9,7 +9,7 @@ from stream_module import MakeStream, MergeStreams
 from embedding_module import Embedding
 from attention_offset_module import AttentionOffset
 from RoPE_module import RoPE
-from rearranging_module import MakeHeads, MergeHeads, SequenceShift
+from rearranging_module import MakeHeads, MergeHeads, ShiftSequence
 
 
 def get_module(module_type):
@@ -51,7 +51,7 @@ def get_module(module_type):
         return MergeHeads
 
     elif module_type == 'shift':
-        return SequenceShift
+        return ShiftSequence
 
     else:
         raise "Layer type does not match any available types."
