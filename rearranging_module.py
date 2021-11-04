@@ -128,7 +128,7 @@ class SequenceShift(nn.Module):
         splitted = []
         for pos_ins in self.instructions:
             start_idx, end_idx = pos_ins['features']
-            shift_amt = self.instructions[pos_ins]['relative_pos']  # Number of sequence positions to shift by
+            shift_amt = pos_ins['relative_pos']  # Number of sequence positions to shift by
 
             chunk = _data[self.input_name][..., start_idx:end_idx]  # Select features and remove them from input tensor
             chunk = self.shift(chunk, shift_amt)  # Perform the shift operation
