@@ -97,8 +97,9 @@ class SequenceShift(nn.Module):
         assert 'instructions' in config.keys(), f"SequenceShift (shift) must be given instructions."
         self.instructions = config['instructions']
         total_features = 0
-        for ins in self.instructions:
-            total_features += self.instructions[ins]
+        for pos_ins in self.instructions:
+            start_idx, end_idx = self.instructions[pos_ins]['features']
+            total_features += (end_idx - start_idx)
 
         self.output_dim = total_features
 
