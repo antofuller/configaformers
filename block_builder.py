@@ -1,9 +1,6 @@
 import torch.nn.functional as F
 import torch
 from torch import nn, einsum
-from einops import rearrange, repeat, reduce
-import math
-from typing import Optional, Tuple, Union, List, Dict
 from attention_module import MHADots, MHAWeightedSum
 from linear_module import LinearProj
 from activation_module import Activation
@@ -12,7 +9,7 @@ from stream_module import MakeStream, MergeStreams
 from embedding_module import Embedding
 from attention_offset_module import AttentionOffset
 from RoPE_module import RoPE
-from rearranging_module import MakeHeads
+from rearranging_module import MakeHeads, MergeHeads, SequenceShift
 
 
 def get_module(module_type):
@@ -49,6 +46,12 @@ def get_module(module_type):
 
     elif module_type == 'make_heads':
         return MakeHeads
+
+    elif module_type == 'merge_heads':
+        return MergeHeads
+
+    elif module_type == 'shift':
+        return SequenceShift
 
     else:
         raise "Layer type does not match any available types."

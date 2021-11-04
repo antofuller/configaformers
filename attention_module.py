@@ -1,7 +1,6 @@
 import torch.nn.functional as F
 import torch
 from torch import nn, einsum
-from norm_module import get_norm, init_norm
 from einops import rearrange, repeat, reduce
 from utils import set_default
 
@@ -89,7 +88,6 @@ class MHAWeightedSum(nn.Module):
                                                    _default=False, _type=None)
 
         self.input_dim_values = _streams[self.input_name_values][-1]
-        self.output_dim = self.input_dim_values
         self.num_heads = _streams[self.input_name_dots][1]  # For dots, this will be num_heads i.e. (dots.shape[1])
         len_queries = _streams[self.input_name_dots][-2]
         len_keys = _streams[self.input_name_dots][-1]
@@ -98,20 +96,15 @@ class MHAWeightedSum(nn.Module):
         assert self.input_dim_values % self.num_heads == 0, "num_heads must divide evenly into input_dim!"
         self.head_dim = int(self.input_dim_values / self.num_heads)
 
-        # Checking norm_value_heads settings
-        self.norm_value_heads_bool, self.norm_value_heads = init_norm(_key='norm_value_heads',
-                                                                      _config=config,
-                                                                      _dim=self.head_dim)
-
         self.attention_type = set_default(_look='attn_function', _dict=config, _default='softmax')
         self.attn_function = get_attention_function(attn_type=self.attention_type)
 
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name_values, ['BSZ', len_keys, self.input_dim_values]],
+        self.streams_in_module = {'inputs': [[self.input_name_values, ['BSZ', self.num_heads, len_keys, self.input_dim_values]],
                                              [self.input_name_dots, ['BSZ', self.num_heads, len_queries, len_keys]],
                                              ],
 
-                                  'outputs': [[self.output_name, ['BSZ', len_queries, self.output_dim]],
+                                  'outputs': [[self.output_name, ['BSZ', self.num_heads, len_queries, self.input_dim_values]],
                                               ]
                                   }
 
@@ -119,17 +112,7 @@ class MHAWeightedSum(nn.Module):
             self.streams_in_module['outputs'].append([self.output_name_attn_scores, ['BSZ', self.num_heads, len_queries, len_keys]])
 
     def forward(self, _data):
-        # Attention operates on a set, so it must receive inputs of shape (bsz, set_length, dim)
-        # We first reshape the values into (bsz, num_heads, length, head_dim), then we (optionally) normalize the head
-        # features. This is not the same as normalizing the value features first, then reshaping.
-
-        # Prepare values
-        values = rearrange(_data[self.input_name_values],
-                           'batch length_values (num_heads head_dim) -> batch num_heads length_values head_dim',
-                           num_heads=self.num_heads)
-        if self.norm_value_heads_bool:
-            values = self.norm_value_heads(values)
-
+        # Attention operates on a set, so it must receive inputs of shape (bsz, num_heads, length, head_dim)
         # Make attention map out of attention dots (usually just a softmax over the last dimension)
         attention_scores = self.attn_function(_data[self.input_name_dots], dim=-1)
 
@@ -138,10 +121,5 @@ class MHAWeightedSum(nn.Module):
             _data[self.output_name_attn_scores] = attention_scores
 
         # Weighted sum of value heads based on attn_map
-        _data[self.output_name] = einsum('b h i j, b h j d -> b h i d', attention_scores, values)
-
-        # Merge the heads back together so we have the same number of features as our input
-        # The length is the length/number of queries (or the i in the above einsum)
-        _data[self.output_name] = rearrange(_data[self.output_name],
-                                            'batch num_heads length head_dim -> batch length (num_heads head_dim)')
+        _data[self.output_name] = einsum('b h i j, b h j d -> b h i d', attention_scores, _data[self.input_name_values])
         return _data

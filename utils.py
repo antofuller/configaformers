@@ -1,8 +1,6 @@
-import torch.nn.functional as F
-import torch
-from torch import nn, einsum
-from einops import rearrange, repeat, reduce
-import math
+
+def exists(val):
+    return val is not None
 
 
 def set_default(_look,
