@@ -92,10 +92,6 @@ class MHAWeightedSum(nn.Module):
         len_queries = _streams[self.input_name_dots][-2]
         len_keys = _streams[self.input_name_dots][-1]
 
-        # Checking attention head settings (if num_heads is not given, default to 1)
-        assert self.input_dim_values % self.num_heads == 0, "num_heads must divide evenly into input_dim!"
-        self.head_dim = int(self.input_dim_values / self.num_heads)
-
         self.attention_type = set_default(_look='attn_function', _dict=config, _default='softmax')
         self.attn_function = get_attention_function(attn_type=self.attention_type)
 
