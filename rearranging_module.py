@@ -177,38 +177,43 @@ class DownSampleSequence(nn.Module):
         return _data
 
 
-# TODO: finish up sample
-# class UpSampleSequence(nn.Module):
-#     def __init__(self,
-#                  config,
-#                  _streams,
-#                  ):
-#         super().__init__()
-#         """
-#         ** WARNING NOT TESTED ***
-#         Up-sampling representations along the sequence dimension
-#         """
-#         # Configure input(s) and output(s)
-#         self.input_name = set_default(_look='input_name', _dict=config, _default='x')
-#         self.output_name = set_default(_look='output_name', _dict=config, _default='x')
-#
-#         assert 'num_chunks' in config.keys(), f"Up-sample module needs to be given num_chunks!"
-#         assert type(config['num_chunks']) == int, f"Up-sample module needs to be given num_chunks that is an integer, " \
-#                                               f" it was given a {type(config['num_chunks'])}!"
-#
-#         self.num_chunks = config['num_chunks']
-#         self.input_dim = _streams[self.input_name][-1]
-#         len_input = _streams[self.input_name][-2]
-#         len_output = 'L_US'
-#
-#         # Prepare streams info
-#         self.streams_in_module = {'inputs': [[self.input_name, ['BSZ', len_input, self.input_dim]],
-#                                              ],
-#
-#                                   'outputs': [[self.output_name, ['BSZ', len_output, self.input_dim]],
-#                                               ]
-#                                   }
-#
-#     def forward(self, _data):
-#         _data[self.output_name] = _data[self.input_name][:, self.start_idx::self.stride, :]
-#         return _data
+class UpSampleSequence(nn.Module):
+    def __init__(self,
+                 config,
+                 _streams,
+                 ):
+        super().__init__()
+        """
+        ** WARNING NOT TESTED ***
+        Up-sampling representations along the sequence dimension
+        """
+        # Configure input(s) and output(s)
+        self.input_name = set_default(_look='input_name', _dict=config, _default='x')
+        self.output_name = set_default(_look='output_name', _dict=config, _default='x')
+        input_shape = _streams[self.input_name]
+
+        assert len(input_shape) == 3, f"Input shape to up-sample must be (BSZ, length, dim)!"
+
+        assert 'num_chunks' in config.keys(), f"Up-sample module needs to be given num_chunks!"
+        assert type(config['num_chunks']) == int, f"Up-sample module needs to be given num_chunks that is an integer, " \
+                                              f" it was given a {type(config['num_chunks'])}!"
+
+        self.num_chunks = config['num_chunks']
+        self.input_dim = _streams[self.input_name][-1]
+        len_input = _streams[self.input_name][-2]
+        len_output = 'L_US'
+
+        # Prepare streams info
+        self.streams_in_module = {'inputs': [[self.input_name, ['BSZ', len_input, self.input_dim]],
+                                             ],
+
+                                  'outputs': [[self.output_name, ['BSZ', len_output, self.input_dim]],
+                                              ]
+                                  }
+
+    def forward(self, _data):
+        _x = rearrange(_data[self.input_name], 'b l d -> b l () d')
+        _x = torch.cat(_x.chunk(2, dim=-1), dim=2)
+        _data[self.output_name] = rearrange(_x, 'b l c d -> b (l c) d')
+
+        return _data
