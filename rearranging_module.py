@@ -203,11 +203,15 @@ class UpSampleSequence(nn.Module):
         len_input = _streams[self.input_name][-2]
         len_output = 'L_US'
 
+        assert (self.input_dim % self.num_chunks) == 0, f'When up-sampling, input_dim ({self.input_dim}) needs to be ' \
+                                                        f'evenly divisible by num_chunks ({self.num_chunks})!'
+        self.output_dim = int(self.input_dim/self.num_chunks)
+
         # Prepare streams info
         self.streams_in_module = {'inputs': [[self.input_name, ['BSZ', len_input, self.input_dim]],
                                              ],
 
-                                  'outputs': [[self.output_name, ['BSZ', len_output, self.input_dim]],
+                                  'outputs': [[self.output_name, ['BSZ', len_output, self.output_dim]],
                                               ]
                                   }
 
