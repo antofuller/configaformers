@@ -30,8 +30,9 @@ class AttentionOffset(nn.Module):
         assert num_heads_offset == self.num_heads, f'num_heads in the attention bias ({num_heads_offset}) must be ' \
                                                  f'equal to num_heads in the attention dots ({self.num_heads})!'
 
-        # Optionally, create a scalar parameter that is multiplied by the attention offset
-        # Be careful, if you use beta with a causal mask, if beta gets to 0, then the causal mask will be gone!!!
+        # Optionally, create a scalar parameter that is multiplied by the attention matrix
+        # I am choosing to multiply beta by the attention matrix since multiplying beta by the attention offset can be
+        # dangerous (for example if beta goes to 0, attention masking will be gone!!!)
         self.scaled_bool = set_default(_look='scaled', _dict=config, _default=False, _type=bool)
         if self.scaled_bool:
             self.beta = torch.nn.Parameter(torch.Tensor([1.0]))
@@ -55,7 +56,7 @@ class AttentionOffset(nn.Module):
         _data[self.input_name_attn_offset] = _data[self.input_name_attn_offset][:, :, :i, :j]
 
         if self.scaled_bool:
-            _data[self.input_name_attn_dots] = _data[self.input_name_attn_dots] + _data[self.input_name_attn_offset] * self.beta
+            _data[self.input_name_attn_dots] = self.beta * _data[self.input_name_attn_dots] + _data[self.input_name_attn_offset]
         else:
             _data[self.input_name_attn_dots] = _data[self.input_name_attn_dots] + _data[self.input_name_attn_offset]
 
