@@ -10,6 +10,7 @@ from embedding_module import Embedding
 from attention_offset_module import AttentionOffset
 from RoPE_module import RoPE
 from rearranging_module import MakeHeads, MergeHeads, ShiftSequence, DownSampleSequence, UpSampleSequence
+from dropout_module import Dropout
 
 
 def get_module(module_type):
@@ -58,6 +59,9 @@ def get_module(module_type):
 
     elif module_type == 'up_sample':
         return UpSampleSequence
+
+    elif module_type == 'dropout':
+        return Dropout
 
     else:
         raise "Layer type does not match any available types."
