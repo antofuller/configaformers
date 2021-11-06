@@ -35,6 +35,7 @@ class AttentionOffset(nn.Module):
         # dangerous (for example if beta goes to 0, attention masking will be gone!!!)
         self.scaled_bool = set_default(_look='scaled', _dict=config, _default=False, _type=bool)
         if self.scaled_bool:
+            # Init to 1 to initially have no impact
             self.beta = torch.nn.Parameter(torch.Tensor([1.0]))
 
         # Prepare streams info

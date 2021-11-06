@@ -217,7 +217,7 @@ class UpSampleSequence(nn.Module):
 
     def forward(self, _data):
         _x = rearrange(_data[self.input_name], 'b l d -> b l () d')
-        _x = torch.cat(_x.chunk(2, dim=-1), dim=2)
+        _x = torch.cat(_x.chunk(self.num_chunks, dim=-1), dim=2)
         _data[self.output_name] = rearrange(_x, 'b l c d -> b (l c) d')
 
         return _data
