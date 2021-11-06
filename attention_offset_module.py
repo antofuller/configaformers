@@ -31,7 +31,8 @@ class AttentionOffset(nn.Module):
                                                  f'equal to num_heads in the attention dots ({self.num_heads})!'
 
         # Optionally, create a scalar parameter that is multiplied by the attention offset
-        self.scaled_bool = set_default(_look='scaled', _dict=config, _default=True, _type=bool)
+        # Be careful, if you use beta with a causal mask, if beta gets to 0, then the causal mask will be gone!!!
+        self.scaled_bool = set_default(_look='scaled', _dict=config, _default=False, _type=bool)
         if self.scaled_bool:
             self.beta = torch.nn.Parameter(torch.Tensor([1.0]))
 
