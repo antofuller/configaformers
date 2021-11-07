@@ -11,7 +11,7 @@ from RoPE_module import get_rope
 class ConfigaFormer(nn.Module):
     def __init__(self,
                  model_config,
-                 input_streams,
+                 input_shapes,
                  ):
         super().__init__()
         # Type checking
@@ -19,8 +19,9 @@ class ConfigaFormer(nn.Module):
 
         # create rope embeds
         self.rope_dict = get_rope(model_config['blocks'])
+        self.input_shapes = input_shapes
 
-        streams = input_streams
+        streams = input_shapes
         self.block_list = nn.ModuleList([])
         for i_block, _block in enumerate(model_config['blocks']):
             block_config = _block['config']
@@ -40,11 +41,24 @@ class ConfigaFormer(nn.Module):
             print("\n")
 
     def forward(self, _data):
-        # if rope embeds exist, then add frequency embeddings to _data
+        # Save input variable sizes in _data
+        for stream_name in _data:
+            assert stream_name in self.input_shapes.keys(), f"Stream name: {stream_name} was not in input stream names!"
+            stream_shape_init = self.input_streams[stream_name]
+            stream_shape_received = _data[stream_name].shape
+
+            for dim_idx in range(len(stream_shape_init)):
+                dim_init = stream_shape_init[dim_idx]
+                dim_received = stream_shape_received[dim_idx]
+
+                if type(dim_init) == str:
+                    _data[dim_init] = dim_received
+
+        # If rope embeds exist, then add frequency embeddings to _data
         if self.rope_dict != {}:
             # Get input device
-            for _input in _data:
-                device = _data[_input].device
+            for stream_name in _data:
+                device = _data[stream_name].device
                 break
 
             for rope_key in self.rope_dict.keys():

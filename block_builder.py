@@ -5,7 +5,7 @@ from attention_module import MHADots, MHAWeightedSum
 from linear_module import LinearProj
 from activation_module import Activation
 from norm_module import Norm
-from stream_module import MakeStream, MergeStreams
+from stream_module import MakeStream, MergeStreams, CutSequence
 from embedding_module import Embedding
 from attention_offset_module import AttentionOffset
 from RoPE_module import RoPE
@@ -62,6 +62,9 @@ def get_module(module_type):
 
     elif module_type == 'dropout':
         return Dropout
+
+    elif module_type == 'cut_sequence':
+        return CutSequence
 
     else:
         raise "Layer type does not match any available types."

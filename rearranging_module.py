@@ -147,12 +147,10 @@ class DownSampleSequence(nn.Module):
                  ):
         super().__init__()
         """
-        ** WARNING NOT TESTED ***
         Down-sampling representations along the sequence dimension
         """
         # Configure input(s) and output(s)
         self.input_name = set_default(_look='input_name', _dict=config, _default='x')
-        self.start_idx = set_default(_look='start_idx', _dict=config, _default=0, _type=int)
         self.output_name = set_default(_look='output_name', _dict=config, _default='x')
 
         assert 'stride' in config.keys(), f"Down-sample module needs to be given a stride!"
@@ -173,7 +171,7 @@ class DownSampleSequence(nn.Module):
                                   }
 
     def forward(self, _data):
-        _data[self.output_name] = _data[self.input_name][:, self.start_idx::self.stride, :]
+        _data[self.output_name] = _data[self.input_name][:, 0::self.stride, :]
         return _data
 
 
@@ -184,7 +182,6 @@ class UpSampleSequence(nn.Module):
                  ):
         super().__init__()
         """
-        ** WARNING NOT TESTED ***
         Up-sampling representations along the sequence dimension
         """
         # Configure input(s) and output(s)
