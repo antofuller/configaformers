@@ -1,7 +1,6 @@
 import torch.nn.functional as F
 import torch
 from torch import nn, einsum
-from einops import rearrange, repeat, reduce
 from utils import set_default
 
 

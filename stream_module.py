@@ -1,7 +1,5 @@
-import torch.nn.functional as F
 import torch
 from torch import nn
-from norm_module import init_norm
 from utils import set_default
 
 

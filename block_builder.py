@@ -1,6 +1,5 @@
-import torch.nn.functional as F
 import torch
-from torch import nn, einsum
+from torch import nn
 from attention_module import MHADots, MHAWeightedSum
 from linear_module import LinearProj
 from activation_module import Activation
