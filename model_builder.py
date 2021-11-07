@@ -19,7 +19,7 @@ class ConfigaFormer(nn.Module):
 
         # create rope embeds
         self.rope_dict = get_rope(model_config['blocks'])
-        self.input_shapes = input_shapes
+        self.input_shapes = input_shapes.copy()
 
         streams = input_shapes
         self.block_list = nn.ModuleList([])
@@ -54,7 +54,7 @@ class ConfigaFormer(nn.Module):
 
                 if type(dim_init) == str:
                     input_sizes[dim_init] = dim_received
-                    
+
         _data['input_sizes'] = input_sizes
 
         # If rope embeds exist, then add frequency embeddings to _data
