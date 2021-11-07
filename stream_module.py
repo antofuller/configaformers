@@ -100,8 +100,12 @@ class CutSequence(nn.Module):
         # Configure input(s) and output(s)
         self.input_name = set_default(_look='input_name', _dict=config, _default='x')
         self.output_name = set_default(_look='output_name', _dict=config, _default='x')
-        self.start = set_default(_look='start', _dict=config, _default=0)
-        self.end = set_default(_look='end', _dict=config, _default=1)
+
+        assert 'start' in config.keys(), f"Cut_sequence must be given a starting index!"
+        assert 'end' in config.keys(), f"Cut_sequence must be given an ending index!"
+
+        self.start = config['start']
+        self.end = config['end']
 
         self.input_dim = _streams[self.input_name][-1]
         len_input = _streams[self.input_name][-2]
