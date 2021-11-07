@@ -41,9 +41,11 @@ transformer_block = get_transformer_block(num_heads=num_heads, dim=model_dim)
 
 Create language modeling head:
 
-````
-to_logits = [{'type': 'linear', 'output_dim': 50257, 'output_name': 'logits'}]
-````
+```python
+to_logits = [{'type': 'linear',
+              'output_dim': 50257,
+              'output_name': 'logits'}]
+```
 
 Create blocks, initialize input shapes, and init the model:
 
