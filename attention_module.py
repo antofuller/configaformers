@@ -81,7 +81,7 @@ class MHAWeightedSum(nn.Module):
         """
         # Configure input(s) and output(s)
         self.input_name_values = set_default(_look='input_name_values', _dict=config, _default='x')
-        self.input_name_dots = set_default(_look='input_name_dots', _dict=config, _default='attn_dots')
+        self.input_name_dots = set_default(_look='input_name_attn_dots', _dict=config, _default='attn_dots')
         self.output_name = set_default(_look='output_name', _dict=config, _default='x')
         self.output_name_attn_scores = set_default(_look='output_name_attention_scores', _dict=config,
                                                    _default=False, _type=None)
