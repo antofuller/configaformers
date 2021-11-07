@@ -7,7 +7,7 @@ from norm_module import Norm
 from stream_module import MakeStream, MergeStreams, CutSequence
 from embedding_module import Embedding
 from attention_offset_module import AttentionOffset
-from RoPE_module import RoPE
+from rope_module import RoPE
 from rearranging_module import MakeHeads, MergeHeads, ShiftSequence, DownSampleSequence, UpSampleSequence
 from dropout_module import Dropout
 

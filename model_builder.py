@@ -1,6 +1,6 @@
 from torch import nn, einsum
 from block_builder import Block
-from RoPE_module import get_rope
+from rope_module import get_rope
 
 
 class ConfigaFormer(nn.Module):
