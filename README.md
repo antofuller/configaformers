@@ -98,7 +98,7 @@ linear -> Input(s): x (BSZ, L_in, 768) - Output(s): logits (BSZ, L_in, 50257)
 
 Before running, we need to get the attention offset (in this case, AliBi with a causal mask):
 
-```
+```python
 from attention_offset_module import get_alibi
 
 attn_offset = get_alibi(num_heads=12)
