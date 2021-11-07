@@ -66,7 +66,7 @@ model = ConfigaFormer(model_config=my_config, input_shapes=input_streams).cuda()
 
 This will print out the transformer config:
 
-```
+```bash
 Block #1, 1x
 embedding -> Input(s): emb_ids (BSZ, L_in) - Output(s): x (BSZ, L_in, 768)
 
