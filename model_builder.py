@@ -44,7 +44,7 @@ class ConfigaFormer(nn.Module):
         # Save input variable sizes in _data
         for stream_name in _data:
             assert stream_name in self.input_shapes.keys(), f"Stream name: {stream_name} was not in input stream names!"
-            stream_shape_init = self.input_streams[stream_name]
+            stream_shape_init = self.input_shapes[stream_name]
             stream_shape_received = _data[stream_name].shape
 
             for dim_idx in range(len(stream_shape_init)):
