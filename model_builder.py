@@ -42,6 +42,7 @@ class ConfigaFormer(nn.Module):
 
     def forward(self, _data):
         # Save input variable sizes in _data
+        input_sizes = {}
         for stream_name in _data:
             assert stream_name in self.input_shapes.keys(), f"Stream name: {stream_name} was not in input stream names!"
             stream_shape_init = self.input_shapes[stream_name]
@@ -52,7 +53,9 @@ class ConfigaFormer(nn.Module):
                 dim_received = stream_shape_received[dim_idx]
 
                 if type(dim_init) == str:
-                    _data[dim_init] = dim_received
+                    input_sizes[dim_init] = dim_received
+                    
+        _data['input_sizes'] = input_sizes
 
         # If rope embeds exist, then add frequency embeddings to _data
         if self.rope_dict != {}:

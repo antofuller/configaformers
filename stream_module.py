@@ -129,12 +129,12 @@ class CutSequence(nn.Module):
         if type(self.start) == int:
             start_idx = self.start
         else:
-            start_idx = _data[self.start]
+            start_idx = _data['input_sizes'][self.start]
 
         if type(self.end) == int:
             end_idx = self.end
         else:
-            end_idx = _data[self.end]
+            end_idx = _data['input_sizes'][self.end]
 
         _data[self.output_name] = _data[self.input_name][:, start_idx:end_idx, :]
         return _data
