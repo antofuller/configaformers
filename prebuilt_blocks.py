@@ -6,6 +6,7 @@ def get_transformer_block(num_heads,
                           ff_mult=4,
                           use_attn_offset=True,
                           offset_name='attn_offset',
+                          drop_prob=0,
                           ):
     block = [] # Make list
 
@@ -57,6 +58,10 @@ def get_transformer_block(num_heads,
 
     # Activation
     block.append({'type': 'activation', 'input_name': main_stream, 'output_name': main_stream})
+
+    if drop_prob != 0:
+        # Dropout
+        block.append({'type': 'dropout', 'prob': 0.2, 'input_name': main_stream, 'output_name': main_stream})
 
     # Proj Down
     block.append({'type': 'linear', 'input_name': main_stream, 'output_name': main_stream, 'output_dim': dim})
