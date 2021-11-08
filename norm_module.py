@@ -72,18 +72,17 @@ class Norm(nn.Module):
         self.output_name = set_default(_look='output_name', _dict=config, _default='x')
 
         self.input_dim = _streams[self.input_name][-1]
-        len_input = _streams[self.input_name][-2]
-        self.output_dim = self.input_dim
+        input_shape = _streams[self.input_name]
 
         # Configuring norm
         norm_name = set_default(_look='norm_type', _dict=config, _default='layer_norm')
         self.norm = get_norm(norm_type=norm_name, dim=self.input_dim)
 
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name, ['BSZ', len_input, self.input_dim]],
+        self.streams_in_module = {'inputs': [[self.input_name, input_shape],
                                              ],
 
-                                  'outputs': [[self.output_name, ['BSZ', len_input, self.output_dim]],
+                                  'outputs': [[self.output_name, input_shape],
                                               ]
                                   }
 
