@@ -26,11 +26,12 @@ from prebuilt_blocks import get_transformer_block
 
 model_dim = 768
 num_heads = 12
+vocab_size = 50257
 
 # Token embedding block
 emb = [{'type': 'embedding',
         'output_dim': model_dim,
-        'num_classes': 50257}]
+        'num_classes': vocab_size}]
 ```
 
 Use our prebuilt transformer block:
@@ -43,7 +44,7 @@ Create language modeling head:
 
 ```python
 to_logits = [{'type': 'linear',
-              'output_dim': 50257,
+              'output_dim': vocab_size,
               'output_name': 'logits'}]
 ```
 
