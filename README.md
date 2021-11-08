@@ -1,12 +1,12 @@
-# *configaformers*
-A python library for highly configurable transformers - easing model architecture search and experimentation. It is premised on building small and independent modules that enables users to configure custom transformer architectures.
+# configaformers
+A python library for highly configurable transformers - easing model architecture search and experimentation.
 
 Special thanks to lucidrains (https://github.com/lucidrains) and Kharr.
 
 ## Notable Features
-Most transformer architectures can be created with the current modules, except efficient attention alternatives that either use sparsity of clustering.
+The main purpose of this library is to allow users to quickly construct transformers by editing config files. We will also provide prebuilt configurations to common or promising model architectures.
 
-When a model is initialized it will print out (on your console) all modules, shapes, input and output names. It also performs shape checking which helps catch errors prior to running data through the model.
+Another feature is our model compiler. When a model is initialized it will print out (on your console) all modules, shapes, input and output names. It also performs shape checking which helps catch errors prior to running data through the model.
 
 ## Setup
 Requirements: PyTorch and einops
