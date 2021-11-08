@@ -50,18 +50,17 @@ to_logits = [{'type': 'linear',
 Create blocks, initialize input shapes, and init the model:
 
 ```python
-blocks = [{"config": emb,
-           "repeat": 1},
-          {"config": transformer_block,
-           "repeat": 12},
-          {"config": to_logits,
-           "repeat": 1},
-          ]
+my_blocks = [{"config": emb,
+              "repeat": 1},
+             {"config": transformer_block,
+              "repeat": 12},
+             {"config": to_logits,
+              "repeat": 1},
+             ]
 
-my_config = {'blocks': blocks}
 input_streams = {'emb_ids': ['B', 'L_in'], 'attn_offset': ['B', num_heads, 'L_in', 'L_in'],}
 
-model = ConfigaFormer(model_config=my_config, input_shapes=input_streams).cuda()
+model = ConfigaFormer(blocks=my_blocks, input_shapes=input_streams).cuda()
 ```
 
 This will print out the transformer config:

@@ -5,20 +5,20 @@ from rope_module import get_rope
 
 class ConfigaFormer(nn.Module):
     def __init__(self,
-                 model_config,
+                 blocks,
                  input_shapes,
                  ):
         super().__init__()
         # Type checking
-        assert type(model_config['blocks']) == list, f"ConfigaFormer's config should be a list, it was given a {type(model_config)}"
+        assert type(blocks) == list, f"ConfigaFormer's config should be a list, it was given a {type(blocks)}"
 
         # create rope embeds
-        self.rope_dict = get_rope(model_config['blocks'])
+        self.rope_dict = get_rope(blocks)
         self.input_shapes = input_shapes.copy()
 
         streams = input_shapes
         self.block_list = nn.ModuleList([])
-        for i_block, _block in enumerate(model_config['blocks']):
+        for i_block, _block in enumerate(blocks):
             block_config = _block['config']
             N = _block['repeat']
             print(f"Block #{i_block+1}, {N}x")
