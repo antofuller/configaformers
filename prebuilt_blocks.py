@@ -61,7 +61,7 @@ def get_transformer_block(num_heads,
 
     if drop_prob != 0:
         # Dropout
-        block.append({'type': 'dropout', 'prob': 0.2, 'input_name': main_stream, 'output_name': main_stream})
+        block.append({'type': 'dropout', 'prob': drop_prob, 'input_name': main_stream, 'output_name': main_stream})
 
     # Proj Down
     block.append({'type': 'linear', 'input_name': main_stream, 'output_name': main_stream, 'output_dim': dim})
