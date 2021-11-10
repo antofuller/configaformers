@@ -81,22 +81,30 @@ class MHAWeightedSum(nn.Module):
         """
         # Configure input(s) and output(s)
         self.input_name_values = set_default(_look='input_name_values', _dict=config, _default='x')
-        self.input_name_dots = set_default(_look='input_name_attn_dots', _dict=config, _default='attn_dots')
+        if 'input_name_attn_scores' in config.keys():
+            # Configure module to use pre-calculated attention scores, no need for dots
+            self.input_name_scores = set_default(_look='input_name_attn_scores', _dict=config, _default='attn_scores')
+            attn_matrix_shape = _streams[self.input_name_scores]
+            attn_matrix_name = self.input_name_scores
+        else:
+            self.input_name_dots = set_default(_look='input_name_attn_dots', _dict=config, _default='attn_dots')
+            attn_matrix_shape = _streams[self.input_name_dots]
+            attn_matrix_name = self.input_name_dots
+            self.attention_type = set_default(_look='attn_function', _dict=config, _default='softmax')
+            self.attn_function = get_attention_function(attn_type=self.attention_type)
+
         self.output_name = set_default(_look='output_name', _dict=config, _default='x')
-        self.output_name_attn_scores = set_default(_look='output_name_attention_scores', _dict=config,
+        self.output_name_attn_scores = set_default(_look='output_name_attn_scores', _dict=config,
                                                    _default=False, _type=None)
 
         self.input_dim_values = _streams[self.input_name_values][-1]
-        self.num_heads = _streams[self.input_name_dots][1]  # For dots, this will be num_heads i.e. (dots.shape[1])
-        len_queries = _streams[self.input_name_dots][-2]
-        len_keys = _streams[self.input_name_dots][-1]
-
-        self.attention_type = set_default(_look='attn_function', _dict=config, _default='softmax')
-        self.attn_function = get_attention_function(attn_type=self.attention_type)
+        self.num_heads = attn_matrix_shape[1]  # For dots, this will be num_heads i.e. (dots.shape[1])
+        len_queries = attn_matrix_shape[-2]
+        len_keys = attn_matrix_shape[-1]
 
         # Prepare streams info
         self.streams_in_module = {'inputs': [[self.input_name_values, ['BSZ', self.num_heads, len_keys, self.input_dim_values]],
-                                             [self.input_name_dots, ['BSZ', self.num_heads, len_queries, len_keys]],
+                                             [attn_matrix_name, ['BSZ', self.num_heads, len_queries, len_keys]],
                                              ],
 
                                   'outputs': [[self.output_name, ['BSZ', self.num_heads, len_queries, self.input_dim_values]],
@@ -107,9 +115,12 @@ class MHAWeightedSum(nn.Module):
             self.streams_in_module['outputs'].append([self.output_name_attn_scores, ['BSZ', self.num_heads, len_queries, len_keys]])
 
     def forward(self, _data):
-        # Attention operates on a set, so it must receive inputs of shape (bsz, num_heads, length, head_dim)
-        # Make attention map out of attention dots (usually just a softmax over the last dimension)
-        attention_scores = self.attn_function(_data[self.input_name_dots], dim=-1)
+        if self.input_name_scores:
+            # If we are given pre-calculated attention scores, then use them here
+            attention_scores = _data[self.input_name_scores]
+        else:
+            # Make attention map out of attention dots (usually just a softmax over the last dimension)
+            attention_scores = self.attn_function(_data[self.input_name_dots], dim=-1)
 
         # Return attention_scores if configured (these can be re-used in deeper layers, see LazyFormer)
         if self.output_name_attn_scores:
