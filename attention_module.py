@@ -86,12 +86,14 @@ class MHAWeightedSum(nn.Module):
             self.input_name_scores = set_default(_look='input_name_attn_scores', _dict=config, _default='attn_scores')
             attn_matrix_shape = _streams[self.input_name_scores]
             attn_matrix_name = self.input_name_scores
+            self.use_old_scores = True
         else:
             self.input_name_dots = set_default(_look='input_name_attn_dots', _dict=config, _default='attn_dots')
             attn_matrix_shape = _streams[self.input_name_dots]
             attn_matrix_name = self.input_name_dots
             self.attention_type = set_default(_look='attn_function', _dict=config, _default='softmax')
             self.attn_function = get_attention_function(attn_type=self.attention_type)
+            self.use_old_scores = False
 
         self.output_name = set_default(_look='output_name', _dict=config, _default='x')
         self.output_name_attn_scores = set_default(_look='output_name_attn_scores', _dict=config,
@@ -115,7 +117,7 @@ class MHAWeightedSum(nn.Module):
             self.streams_in_module['outputs'].append([self.output_name_attn_scores, ['BSZ', self.num_heads, len_queries, len_keys]])
 
     def forward(self, _data):
-        if self.input_name_scores:
+        if self.use_old_scores:
             # If we are given pre-calculated attention scores, then use them here
             attention_scores = _data[self.input_name_scores]
         else:
