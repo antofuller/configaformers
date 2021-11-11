@@ -103,36 +103,33 @@ class Gate(nn.Module):
         """
         # Configure input(s) and output(s)
         self.input_name = set_default(_look='input_name', _dict=config, _default='x')
-        self.gate_type = set_default(_look='gate_type', _dict=config, _default='features')
+        self.dim_to_scale = set_default(_look='dim_to_scale', _dict=config, _default=2, _type=int)
         self.output_name = set_default(_look='output_name', _dict=config, _default='x')
 
-        input_shape = _streams[self.input_name]
-        assert self.gate_type == 'features' or self.gate_type == 'heads', f'Gate type must be "features" or "heads"!'
+        self.input_shape = _streams[self.input_name]
+        assert self.dim_to_scale > 0, f'dim_to_scale must be greater than 0!'
+        assert self.dim_to_scale <= len(self.input_shape), f'dim_to_scale must less than or equal to the number of ' \
+                                                           f'input dimensions!'
+        num_params = self.input_shape[self.dim_to_scale]
 
         # Initialize gate to 1
-        if self.gate_type == 'features':
-            self.scale = nn.Parameter(torch.ones((input_shape[-1],)), requires_grad=True).view(1, 1, input_shape[-1])
-        elif self.gate_type == 'heads':
-            self.scale = nn.Parameter(torch.ones((input_shape[1],)), requires_grad=True).view(1, input_shape[1], 1, 1)
-            self.scale = self.scale.repeat(1, 1, 1, input_shape[-1])
+        self.scale = nn.Parameter(torch.ones(num_params), requires_grad=True)
+
+        # Built einsum input strings
+        self.einsum_in_1 = 'abcdef'
+        self.einsum_in_1 = self.einsum_in_1[:len(self.input_shape)]
+        self.einsum_in_2 = self.einsum_in_1[self.dim_to_scale]
+
+        print(f"{self.einsum_in_1},{self.einsum_in_2}->{self.einsum_in_1}")
 
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name, input_shape],
+        self.streams_in_module = {'inputs': [[self.input_name, self.input_shape],
                                              ],
 
-                                  'outputs': [[self.output_name, input_shape],
+                                  'outputs': [[self.output_name, self.input_shape],
                                               ]
                                   }
 
     def forward(self, _data):
-        if self.gate_type == 'features':
-            bsz, length, dim = _data[self.input_name].shape
-            self.scale = self.scale.repeat(bsz, length, 1)
-        elif self.gate_type == 'heads':
-            bsz, heads, length, head_dim = _data[self.input_name].shape
-            self.scale = self.scale.repeat(bsz, 1, length, 1)
-        else:
-            print(f"self.gate_type: {self.gate_type}, is not available!")
-
-        _data[self.output_name] = _data[self.input_name] * self.scale
+        _data[self.output_name] = torch.einsum(f'{self.einsum_in_1},{self.einsum_in_2}->{self.einsum_in_1}', _data[self.input_name], self.scale)
         return _data
