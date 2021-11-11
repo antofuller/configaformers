@@ -89,3 +89,50 @@ class Norm(nn.Module):
     def forward(self, _data):
         _data[self.output_name] = self.norm(_data[self.input_name])
         return _data
+
+
+class Gate(nn.Module):
+    def __init__(self,
+                 config,
+                 _streams,
+                 ):
+        super().__init__()
+        """
+        *** NOT TESTED ***
+        Learned Gate used in as a weighted residual, or for scaling mha heads (see NormFormer)
+        """
+        # Configure input(s) and output(s)
+        self.input_name = set_default(_look='input_name', _dict=config, _default='x')
+        self.gate_type = set_default(_look='type', _dict=config, _default='features')
+        self.output_name = set_default(_look='output_name', _dict=config, _default='x')
+
+        input_shape = _streams[self.input_name]
+        assert self.gate_type == 'features' or self.gate_type == 'heads', f'Gate type must be "features" or "heads"!'
+
+        # Initialize gate to 1
+        if self.gate_type == 'features':
+            self.scale = nn.Parameter(torch.ones((input_shape[-1],)), requires_grad=True).view(1, 1, input_shape[-1])
+        elif self.gate_type == 'heads':
+            self.scale = nn.Parameter(torch.ones((input_shape[1],)), requires_grad=True).view(1, input_shape[1], 1, 1)
+            self.scale = self.scale.repeat(1, 1, 1, input_shape[-1])
+
+        # Prepare streams info
+        self.streams_in_module = {'inputs': [[self.input_name, input_shape],
+                                             ],
+
+                                  'outputs': [[self.output_name, input_shape],
+                                              ]
+                                  }
+
+    def forward(self, _data):
+        if self.gate_type == 'features':
+            bsz, length, dim = _data[self.input_name]
+            self.scale = self.scale.repeat(bsz, length, 1)
+        elif self.gate_type == 'heads':
+            bsz, heads, length, head_dim = _data[self.input_name]
+            self.scale = self.scale.repeat(bsz, 1, length, 1)
+        else:
+            print(f"self.gate_type: {self.gate_type}, is not available!")
+
+        _data[self.output_name] = _data[self.input_name] * self.scale
+        return _data
