@@ -103,7 +103,7 @@ class Gate(nn.Module):
         """
         # Configure input(s) and output(s)
         self.input_name = set_default(_look='input_name', _dict=config, _default='x')
-        self.gate_type = set_default(_look='type', _dict=config, _default='features')
+        self.gate_type = set_default(_look='gate_type', _dict=config, _default='features')
         self.output_name = set_default(_look='output_name', _dict=config, _default='x')
 
         input_shape = _streams[self.input_name]
@@ -126,10 +126,10 @@ class Gate(nn.Module):
 
     def forward(self, _data):
         if self.gate_type == 'features':
-            bsz, length, dim = _data[self.input_name]
+            bsz, length, dim = _data[self.input_name].shape
             self.scale = self.scale.repeat(bsz, length, 1)
         elif self.gate_type == 'heads':
-            bsz, heads, length, head_dim = _data[self.input_name]
+            bsz, heads, length, head_dim = _data[self.input_name].shape
             self.scale = self.scale.repeat(bsz, 1, length, 1)
         else:
             print(f"self.gate_type: {self.gate_type}, is not available!")
