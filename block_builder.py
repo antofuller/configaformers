@@ -3,7 +3,7 @@ from torch import nn
 from attention_module import MHADots, MHAWeightedSum
 from linear_module import LinearProj
 from activation_module import Activation
-from norm_module import Norm, Gate
+from norm_module import Norm, ScaleAlongDimension
 from stream_module import MakeStream, MergeStreams, CutSequence
 from embedding_module import Embedding
 from attention_offset_module import AttentionOffset
@@ -65,8 +65,8 @@ def get_module(module_type):
     elif module_type == 'cut_sequence':
         return CutSequence
 
-    elif module_type == 'gate':
-        return Gate
+    elif module_type == 'scale_dim':
+        return ScaleAlongDimension
 
     else:
         raise "Layer type does not match any available types."

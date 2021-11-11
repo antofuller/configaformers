@@ -91,15 +91,14 @@ class Norm(nn.Module):
         return _data
 
 
-class Gate(nn.Module):
+class ScaleAlongDimension(nn.Module):
     def __init__(self,
                  config,
                  _streams,
                  ):
         super().__init__()
         """
-        *** NOT TESTED ***
-        Learned Gate used in as a weighted residual, or for scaling mha heads (see NormFormer)
+        Learned scale used in as a weighted residual, or for scaling mha heads (see NormFormer)
         """
         # Configure input(s) and output(s)
         self.input_name = set_default(_look='input_name', _dict=config, _default='x')
@@ -116,7 +115,7 @@ class Gate(nn.Module):
         self.scale = nn.Parameter(torch.ones(num_params), requires_grad=True)
 
         # Built einsum input strings
-        self.einsum_in_1 = 'abcdef'
+        self.einsum_in_1 = 'abcdef'  # max of 6 dims
         self.einsum_in_1 = self.einsum_in_1[:len(self.input_shape)]
         self.einsum_in_2 = self.einsum_in_1[self.dim_to_scale]
 

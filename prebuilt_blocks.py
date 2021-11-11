@@ -114,7 +114,7 @@ def get_normformer_block(num_heads,
                   'input_name_values': 'values',
                   'input_name_attn_dots': 'attn_dots',
                   'output_name': main_stream})
-    block.append({'type': 'gate', 'gate_type': 'heads', 'input_name': main_stream, 'output_name': main_stream})
+    block.append({'type': 'scale_dim', 'dim_to_scale': 1, 'input_name': main_stream, 'output_name': main_stream})
     block.append({'type': 'merge_heads', 'input_name': main_stream, 'output_name': main_stream})
 
     # Mix
@@ -148,7 +148,7 @@ def get_normformer_block(num_heads,
     block.append({'type': 'linear', 'input_name': main_stream, 'output_name': main_stream, 'output_dim': dim})
 
     # Add residual
-    block.append({'type': 'gate', 'gate_type': 'features', 'input_name': 'residual', 'output_name': 'residual'})
+    block.append({'type': 'scale_dim', 'dim_to_scale': 2, 'input_name': 'residual', 'output_name': 'residual'})
     block.append({'type': 'merge_streams',
                   'input_name_1': main_stream,
                   'input_name_2': 'residual',
