@@ -267,7 +267,7 @@ def copygate_block(num_heads,
     block = [] # Make list
 
     # Make residual
-    block.append({'type': 'make_stream', 'input_name': input_name, 'output_name': 'block_input'})
+    block.append({'type': 'make_stream', 'input_name': input_name, 'output_name': 'h'})
 
     # Perform vanilla Multi-Head Attention
     block += attention_block(num_heads=num_heads,
