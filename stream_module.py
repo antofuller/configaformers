@@ -41,7 +41,7 @@ class MergeStreams(nn.Module):
                  ):
         super().__init__()
         """
-        Merge data streams - can only merge 1 streams right now
+        Merge data streams via element-wise add, subtract, or multiply
         """
         # Configure input(s) and output(s)
         self.input_name_1 = set_default(_look='input_name_1', _dict=config, _default='x')
@@ -49,38 +49,33 @@ class MergeStreams(nn.Module):
         self.output_name = set_default(_look='output_name', _dict=config, _default='x')
         self.merge_name = set_default(_look='merge_type', _dict=config, _default='add')
 
-        self.input_dim_1 = _streams[self.input_name_1][-1]
-        len_input_1 = _streams[self.input_name_1][-2]
-        self.input_dim_2 = _streams[self.input_name_2][-1]
-        len_input_2 = _streams[self.input_name_2][-2]
+        self.input_shape_1 = _streams[self.input_name_1]
+        self.input_shape_2 = _streams[self.input_name_2]
 
-        assert len_input_1 == len_input_2, f"Merging streams must have the same length!"
+        assert (self.merge_name == 'add') or (self.merge_name == 'multiply') or (self.merge_name == 'subtract'), \
+            f"Merge stream operations available are: 'add', 'multiply', and 'subtract'!"
 
-        if (self.merge_name == 'add') or (self.merge_name == 'mult'):
-            assert self.input_dim_1 == self.input_dim_2, f"When merging streams with 'add' or 'mult', the two input" \
-                                                         f" streams must have the same number of features."
-            self.output_dim = self.input_dim_1
-        elif self.merge_name == 'cat':
-            self.output_dim = self.input_dim_1 + self.input_dim_2
+        if len(self.input_shape_1) < len(self.input_shape_2):
+            self.output_shape = self.input_shape_2
         else:
-            print(f'{self.merge_name} did not match any options.')
+            self.output_shape = self.input_shape_1
 
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name_1, ['BSZ', len_input_1, self.input_dim_1]],
-                                             [self.input_name_2, ['BSZ', len_input_2, self.input_dim_2]],
+        self.streams_in_module = {'inputs': [[self.input_name_1, self.input_shape_1],
+                                             [self.input_name_2, self.input_shape_2],
                                              ],
 
-                                  'outputs': [[self.output_name, ['BSZ', len_input_1, self.output_dim]],
+                                  'outputs': [[self.output_name, self.output_shape],
                                               ]
                                   }
 
     def forward(self, _data):
         if self.merge_name == 'add':
             _data[self.output_name] = _data[self.input_name_1] + _data[self.input_name_2]
-        elif self.merge_name == 'mult':
+        if self.merge_name == 'subtract':
+            _data[self.output_name] = _data[self.input_name_1] - _data[self.input_name_2]
+        elif self.merge_name == 'multiply':
             _data[self.output_name] = _data[self.input_name_1] * _data[self.input_name_2]
-        elif self.merge_name == 'cat':
-            _data[self.output_name] = torch.cat([_data[self.input_name_1], _data[self.input_name_2]], dim=-1)
         else:
             print(f'{self.merge_name} did not match any options.')
         return _data

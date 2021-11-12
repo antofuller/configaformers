@@ -37,6 +37,10 @@ class LinearProj(nn.Module):
 
         self.proj = nn.Linear(self.input_dim, self.output_dim)
 
+        if 'init_bias' in config.keys():
+            self.proj.bias.data.fill_(config['init_bias'])
+            print(f'Bias initialized to {config["init_bias"]}')
+
         # Prepare streams info
         self.streams_in_module = {'inputs': [[self.input_name, ['BSZ', len_input, self.input_dim]],
                                              ],
