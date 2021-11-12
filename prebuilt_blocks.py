@@ -267,7 +267,7 @@ def copygate_block(num_heads,
     block = [] # Make list
 
     # Make residual
-    block.append({'type': 'make_stream', 'input_name': input_name, 'output_name': 'h'})
+    block.append({'type': 'make_stream', 'input_name': input_name, 'output_name': 'block_input'})
 
     # Perform vanilla Multi-Head Attention
     block += attention_block(num_heads=num_heads,
@@ -305,7 +305,7 @@ def copygate_block(num_heads,
                        init_final_bias=-3)
     block.append({'type': 'activation', 'activation_function': 'sigmoid', 'input_name': 'g', 'output_name': 'g'})
 
-    # We now have h, h_hat, and g (using naming conventions from the paper)
+    # We now have h (block_input), h_hat, and g (using naming conventions from the paper)
     block.append({'type': 'merge_streams',
                   'input_name_1': 'g',
                   'input_name_2': 'h_hat',
@@ -320,7 +320,7 @@ def copygate_block(num_heads,
 
     block.append({'type': 'merge_streams',
                   'input_name_1': 'one_minus_g',
-                  'input_name_2': 'h',
+                  'input_name_2': 'block_input',
                   'merge_type': 'multiply',
                   'output_name': 'second_term'})
 
