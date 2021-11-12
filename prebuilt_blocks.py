@@ -60,7 +60,7 @@ def attention_block(num_heads,
                       'input_name_attn_dots': 'attn_dots',
                       'input_name_attn_offset': offset_name,
                       'output_name': 'attn_dots',
-                      'scaled': True})
+                      'scaled': offset_scale})
 
     # Perform a weighted sum with attention scores and values
     block.append({'type': 'mha_sum',
