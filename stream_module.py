@@ -72,7 +72,7 @@ class MergeStreams(nn.Module):
     def forward(self, _data):
         if self.merge_name == 'add':
             _data[self.output_name] = _data[self.input_name_1] + _data[self.input_name_2]
-        if self.merge_name == 'subtract':
+        elif self.merge_name == 'subtract':
             _data[self.output_name] = _data[self.input_name_1] - _data[self.input_name_2]
         elif self.merge_name == 'multiply':
             _data[self.output_name] = _data[self.input_name_1] * _data[self.input_name_2]
