@@ -35,6 +35,7 @@ def attention_block(num_heads,
                     output_name='x',
                     use_attn_offset=True,
                     offset_name='attn_offset',
+                    offset_scale=False,
                     scale_heads=False,
                     mix=True):
     block = []
@@ -58,7 +59,8 @@ def attention_block(num_heads,
         block.append({'type': 'attention_offset',
                       'input_name_attn_dots': 'attn_dots',
                       'input_name_attn_offset': offset_name,
-                      'output_name': 'attn_dots'})
+                      'output_name': 'attn_dots',
+                      'scaled': True})
 
     # Perform a weighted sum with attention scores and values
     block.append({'type': 'mha_sum',
@@ -198,6 +200,7 @@ def copygate_block(num_heads,
                    ff_mult_gate=1,
                    use_attn_offset=True,
                    offset_name='attn_offset',
+                   offset_scale=False,
                    drop_prob=0,
                    ):
     block = [] # Make list
@@ -211,6 +214,7 @@ def copygate_block(num_heads,
                              output_name='a',
                              use_attn_offset=use_attn_offset,
                              offset_name=offset_name,
+                             offset_scale=offset_scale,
                              scale_heads=False,
                              mix=True)
 

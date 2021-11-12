@@ -34,6 +34,7 @@ class AttentionOffset(nn.Module):
         if self.scaled_bool:
             # Init to 1 to initially have no impact
             self.beta = torch.nn.Parameter(torch.Tensor([1.0]))
+            print(f"Using scaled offset")
 
         # Prepare streams info
         self.streams_in_module = {'inputs': [[self.input_name_attn_dots, ['BSZ', self.num_heads, len_queries, len_keys]],
