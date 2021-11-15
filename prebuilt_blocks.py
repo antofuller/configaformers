@@ -35,7 +35,6 @@ def attention_block(num_heads,
                     output_name='x',
                     use_attn_offset=True,
                     offset_name='attn_offset',
-                    offset_scale=False,
                     scale_heads=False,
                     mix=True):
     block = []
@@ -56,11 +55,11 @@ def attention_block(num_heads,
                   'output_name': 'attn_dots'})
 
     if use_attn_offset:  # Apply attention masking and/or biasing (introduced in AliBi)
-        block.append({'type': 'attention_offset',
-                      'input_name_attn_dots': 'attn_dots',
-                      'input_name_attn_offset': offset_name,
-                      'output_name': 'attn_dots',
-                      'scaled': offset_scale})
+        block.append({'type': 'merge_streams',
+                      'input_name_1': 'attn_dots',
+                      'input_name_2': offset_name,
+                      'merge_type': 'add',
+                      'output_name': 'attn_dots'})
 
     # Perform a weighted sum with attention scores and values
     block.append({'type': 'mha_sum',
@@ -200,7 +199,6 @@ def copygate_block(num_heads,
                    ff_mult_gate=1,
                    use_attn_offset=True,
                    offset_name='attn_offset',
-                   offset_scale=False,
                    drop_prob=0,
                    ):
     block = [] # Make list
@@ -214,7 +212,6 @@ def copygate_block(num_heads,
                              output_name='a',
                              use_attn_offset=use_attn_offset,
                              offset_name=offset_name,
-                             offset_scale=offset_scale,
                              scale_heads=False,
                              mix=True)
 
