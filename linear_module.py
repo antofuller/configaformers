@@ -27,7 +27,7 @@ class LinearProj(nn.Module):
             self.output_dim = self.input_dim
 
         # Set output shape as the same as input shape, other than the features dimension
-        self.output_shape = self.input_shape.clone()
+        self.output_shape = self.input_shape.copy()
         self.output_shape[-1] = self.output_dim
 
         # Init linear projection

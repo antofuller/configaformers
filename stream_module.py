@@ -110,7 +110,7 @@ class CutStream(nn.Module):
         else:
             cut_dim_output = f"{self.end} - {self.start}"
 
-        self.output_shape = self.input_shape.clone()
+        self.output_shape = self.input_shape.copy()
         self.output_shape[self.cut_dim] = cut_dim_output
 
         # Prepare streams info
