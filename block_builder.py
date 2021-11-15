@@ -6,7 +6,6 @@ from activation_module import Activation
 from norm_module import Norm, ScaleAlongDimension
 from stream_module import MakeStream, MergeStreams, CutSequence
 from embedding_module import Embedding
-from attention_offset_module import AttentionOffset
 from rope_module import RoPE
 from rearranging_module import MakeHeads, MergeHeads, ShiftSequence, DownSampleSequence, UpSampleSequence
 from dropout_module import Dropout
@@ -37,9 +36,6 @@ def get_module(module_type):
 
     elif module_type == "embedding":
         return Embedding
-
-    elif module_type == 'attention_offset':
-        return AttentionOffset
 
     elif module_type == 'rope':
         return RoPE
