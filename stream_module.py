@@ -79,40 +79,45 @@ class MergeStreams(nn.Module):
         return _data
 
 
-class CutSequence(nn.Module):
+class CutStream(nn.Module):
     def __init__(self,
                  config,
                  _streams,
                  ):
         super().__init__()
         """
+        IN TESTING
         Cut data stream
         """
         # Configure input(s) and output(s)
         self.input_name = set_default(_look='input_name', _dict=config, _default='x')
         self.output_name = set_default(_look='output_name', _dict=config, _default='x')
 
-        assert 'start' in config.keys(), f"Cut_sequence must be given a starting index!"
-        assert 'end' in config.keys(), f"Cut_sequence must be given an ending index!"
+        assert 'start' in config.keys(), f"Cut_stream must be given a starting index!"
+        assert 'end' in config.keys(), f"Cut_stream must be given an ending index!"
+        assert 'cut_dim' in config.keys(), f"Cut_stream must be given a dimension which is cut!"
 
         self.start = config['start']
         self.end = config['end']
+        self.cut_dim = config['cut_dim']
 
-        self.input_dim = _streams[self.input_name][-1]
-        len_input = _streams[self.input_name][-2]
+        self.input_shape = _streams[self.input_name]
 
         if (type(self.start) == int) and (type(self.end) == int):
-            len_output = self.end - self.start
+            cut_dim_output = self.end - self.start
         elif self.start == 0:
-            len_output = self.end
+            cut_dim_output = self.end
         else:
-            len_output = f"{self.end} - {self.start}"
+            cut_dim_output = f"{self.end} - {self.start}"
+
+        self.output_shape = self.input_shape.clone()
+        self.output_shape[self.cut_dim] = cut_dim_output
 
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name, ['BSZ', len_input, self.input_dim]],
+        self.streams_in_module = {'inputs': [[self.input_name, self.input_shape],
                                              ],
 
-                                  'outputs': [[self.output_name, ['BSZ', len_output, self.input_dim]],
+                                  'outputs': [[self.output_name, self.output_shape],
                                               ]
                                   }
 
@@ -127,5 +132,19 @@ class CutSequence(nn.Module):
         else:
             end_idx = _data['input_sizes'][self.end]
 
-        _data[self.output_name] = _data[self.input_name][:, start_idx:end_idx, :]
+        if self.cut_dim == 0:
+            _data[self.output_name] = _data[self.input_name][start_idx:end_idx, ...]
+
+        elif self.cut_dim == 1:
+            _data[self.output_name] = _data[self.input_name][:, start_idx:end_idx, ...]
+
+        elif self.cut_dim == 2:
+            _data[self.output_name] = _data[self.input_name][:, :, start_idx:end_idx, ...]
+
+        elif self.cut_dim == 3:
+            _data[self.output_name] = _data[self.input_name][:, :, :, start_idx:end_idx]
+
+        else:
+            print('cut_stream only supports up to 4 dimensional data')
+
         return _data

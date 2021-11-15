@@ -4,7 +4,7 @@ from attention_module import MHADots, MHAWeightedSum
 from linear_module import LinearProj
 from activation_module import Activation
 from norm_module import Norm, ScaleAlongDimension
-from stream_module import MakeStream, MergeStreams, CutSequence
+from stream_module import MakeStream, MergeStreams, CutStream
 from embedding_module import Embedding
 from rope_module import RoPE
 from rearranging_module import MakeHeads, MergeHeads, ShiftSequence, DownSampleSequence, UpSampleSequence
@@ -58,8 +58,8 @@ def get_module(module_type):
     elif module_type == 'dropout':
         return Dropout
 
-    elif module_type == 'cut_sequence':
-        return CutSequence
+    elif module_type == 'cut_stream':
+        return CutStream
 
     elif module_type == 'scale_dim':
         return ScaleAlongDimension
