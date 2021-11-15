@@ -37,7 +37,7 @@ emb = [{'type': 'embedding',
 Use our prebuilt transformer block:
 
 ```python
-transformer_block = get_transformer_block(num_heads=num_heads, dim=model_dim)
+t_block = transformer_block(num_heads=num_heads, dim=model_dim)
 ```
 
 Create language modeling head:
@@ -53,7 +53,7 @@ Create blocks, initialize input shapes, and init the model:
 ```python
 my_blocks = [{"config": emb,
               "repeat": 1},
-             {"config": transformer_block,
+             {"config": t_block,
               "repeat": 12},
              {"config": to_logits,
               "repeat": 1},
@@ -81,7 +81,7 @@ make_heads -> Input(s): queries (BSZ, L_in, 768) - Output(s): queries (BSZ, 12, 
 make_heads -> Input(s): keys (BSZ, L_in, 768) - Output(s): keys (BSZ, 12, L_in, 64)
 make_heads -> Input(s): values (BSZ, L_in, 768) - Output(s): values (BSZ, 12, L_in, 64)
 mha_dots -> Input(s): queries (BSZ, 12, L_in, 64), keys (BSZ, 12, L_in, 64) - Output(s): attn_dots (BSZ, 12, L_in, L_in)
-attention_offset -> Input(s): attn_dots (BSZ, 12, L_in, L_in), attn_offset (BSZ, 12, L_in, L_in) - Output(s): attn_dots (BSZ, 12, L_in, L_in)
+merge_streams -> Input(s): attn_dots (BSZ, 12, L_in, L_in), attn_offset (B, 12, L_in, L_in) - Output(s): attn_dots (BSZ, 12, L_in, L_in)
 mha_sum -> Input(s): values (BSZ, 12, L_in, 64), attn_dots (BSZ, 12, L_in, L_in) - Output(s): x (BSZ, 12, L_in, 64)
 merge_heads -> Input(s): x (BSZ, 12, L_in, 64) - Output(s): x (BSZ, L_in, 768)
 linear -> Input(s): x (BSZ, L_in, 768) - Output(s): x (BSZ, L_in, 768)
