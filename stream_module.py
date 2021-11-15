@@ -14,18 +14,16 @@ class MakeStream(nn.Module):
         """
         # Configure input(s) and output(s)
         self.input_name = set_default(_look='input_name', _dict=config, _default='x')
-        self.input_dim = _streams[self.input_name][-1]
-        len_input = _streams[self.input_name][-2]
+        self.input_shape = _streams[self.input_name]
 
         assert 'output_name' in config.keys(), f"When making a stream, 'output_name' must be given!"
         self.output_name = config['output_name']
-        self.output_dim = self.input_dim  # dims must match, since we are just making a copy
 
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name, ['BSZ', len_input, self.input_dim]],
+        self.streams_in_module = {'inputs': [[self.input_name, self.input_shape],
                                              ],
 
-                                  'outputs': [[self.output_name, ['BSZ', len_input, self.output_dim]],
+                                  'outputs': [[self.output_name, self.input_shape],
                                               ]
                                   }
 

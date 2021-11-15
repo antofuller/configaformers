@@ -1,8 +1,6 @@
 import torch.nn.functional as F
 import torch
 from torch import nn
-from typing import List
-from norm_module import init_norm
 from utils import set_default
 
 
@@ -43,11 +41,6 @@ class Activation(nn.Module):
         self.input_dim = _streams[self.input_name][-1]
         len_input = _streams[self.input_name][-2]
 
-        # Checking input_norm settings
-        self.input_norm_bool, self.input_norm = init_norm(_key='input_norm',
-                                                          _config=config,
-                                                          _dim=self.input_dim)
-
         # Checking activation settings
         if 'activation_function' not in config:
             config['activation_function'] = 'gelu'  # Defaults to gelu
@@ -82,11 +75,6 @@ class Activation(nn.Module):
         else:
             print(f"activation_function must be a string or a list of strings.")
 
-        # Checking output_norm settings
-        self.output_norm_bool, self.output_norm = init_norm(_key='output_norm',
-                                                            _config=config,
-                                                            _dim=self.output_dim)
-
         # Prepare streams info
         self.streams_in_module = {'inputs': [[self.input_name, ['BSZ', len_input, self.input_dim]],
                                              ],
@@ -116,18 +104,13 @@ class Activation(nn.Module):
         return _x
 
     def forward(self, _data):
-        if self.input_norm_bool:
-            _data[self.output_name] = self.input_norm(_data[self.input_name])
-        elif self.output_name != self.input_name:
+        if self.output_name != self.input_name:
             _data[self.output_name] = _data[self.input_name].clone()
 
         if self.glu_bool:
             _data[self.output_name] = self._split_and_multiply(_data[self.output_name])
         else:
             _data[self.output_name] = self.act_func(_data[self.output_name])
-
-        if self.output_norm_bool:
-            _data[self.output_name] = self.output_norm(_data[self.output_name])
 
         return _data
 
