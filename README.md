@@ -12,7 +12,7 @@ Another feature is our model compiler. When a model is initialized it will print
 Requirements: PyTorch and einops
 ```bash
 git clone https://github.com/antofuller/configaformers.git
-cd /content/configaformers
+cd configaformers
 ```
 
 ## Usage
@@ -101,14 +101,17 @@ linear -> Input(s): x (BSZ, L_in, 768) - Output(s): logits (BSZ, L_in, 50257)
 Before running, we need to get the attention offset (in this case, AliBi with a causal mask):
 
 ```python
-from attention_offset_module import get_alibi
+from utils import get_alibi
 
-attn_offset = get_alibi(num_heads=12)
+attn_offset = get_alibi(num_heads=12, max_length=1024)
 ```
 
 Now we can use the model:
 
 ```python
+# Prepare attention offset by repeating it over the batch dimension
+attn_offset = attn_offset.repeat(bsz, 1, 1, 1)
+
 input_data = {'emb_ids': batch_ids.view(bsz, 1024).cuda(),
               'attn_offset': attn_offset.cuda()}
 
@@ -118,6 +121,5 @@ logits = model(input_data)['logits'].view(bsz, 1024, 50257)
 ## Features on the way...
 1. Create more prebuilt blocks
 2. Improve attention offset helpers
-3. Efficient attention (Routing Transformer)
-4. Add more experiments
-5. Triton for speed-up
+3. Add more experiments
+4. Experiment with Triton for speed-up
