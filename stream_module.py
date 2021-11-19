@@ -148,3 +148,51 @@ class CutStream(nn.Module):
             print('cut_stream only supports up to 4 dimensional data')
 
         return _data
+
+
+class CatStreams(nn.Module):
+    def __init__(self,
+                 config,
+                 _streams,
+                 ):
+        super().__init__()
+        """
+        IN TESTING
+        Concatenate data streams
+        """
+        # Configure input(s) and output(s)
+        self.output_name = set_default(_look='output_name', _dict=config, _default='x')
+
+        assert 'input_list' in config.keys(), f"Cat_streams must be given 'input_list'!"
+        assert 'cat_dim' in config.keys(), f"Cat_streams must be given 'cat_dim'"
+
+        self.input_list = config['input_list']
+        self.cat_dim = config['cat_dim']
+
+        input_streams = []
+        cat_dim_out = 0
+        for input_name in self.input_list:
+            input_shape = _streams[input_name]
+            input_streams.append([input_name, input_shape])
+            cat_dim_out += input_shape[self.cat_dim]
+
+        self.output_shape = input_streams[0][1].copy()  # copy the shape of the first input stream
+        self.output_shape[self.cat_dim] = cat_dim_out  # update the dimension that is concatenated
+
+        # Prepare streams info
+        self.streams_in_module = {'inputs': input_streams,
+
+                                  'outputs': [[self.output_name, self.output_shape],
+                                              ]
+                                  }
+
+    def forward(self, _data):
+        # collect input streams
+        temp_input_list = []
+        for input_name in self.input_list:
+            temp_input_list.append(_data[input_name])
+
+        _data[self.output_name] = torch.cat(temp_input_list, dim=self.cat_dim)
+        del temp_input_list
+
+        return _data
