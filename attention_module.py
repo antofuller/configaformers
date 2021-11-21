@@ -40,6 +40,7 @@ class MHADots(nn.Module):
 
         self.num_heads = _streams[self.input_name_queries][1]
         num_heads_keys = _streams[self.input_name_keys][1]
+        batch = _streams[self.input_name_queries][0]
 
         assert self.input_dim_queries == self.input_dim_keys, f'Queries dim ({self.input_dim_queries}) must equal' \
                                                               f' keys dim ({self.input_dim_keys})'
@@ -52,11 +53,11 @@ class MHADots(nn.Module):
         self.scale = self.input_dim_queries ** -0.5
 
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name_queries, ['BSZ', self.num_heads, len_queries, self.input_dim_queries]],
-                                             [self.input_name_keys, ['BSZ', self.num_heads, len_keys, self.input_dim_keys]],
+        self.streams_in_module = {'inputs': [[self.input_name_queries, [batch, self.num_heads, len_queries, self.input_dim_queries]],
+                                             [self.input_name_keys, [batch, self.num_heads, len_keys, self.input_dim_keys]],
                                              ],
 
-                                  'outputs': [[self.output_name, ['BSZ', self.num_heads, len_queries, len_keys]],
+                                  'outputs': [[self.output_name, [batch, self.num_heads, len_queries, len_keys]],
                                               ]
                                   }
 
@@ -103,18 +104,19 @@ class MHAWeightedSum(nn.Module):
         self.num_heads = attn_matrix_shape[1]  # For dots, this will be num_heads i.e. (dots.shape[1])
         len_queries = attn_matrix_shape[-2]
         len_keys = attn_matrix_shape[-1]
+        batch = _streams[self.input_name_values][0]
 
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name_values, ['BSZ', self.num_heads, len_keys, self.input_dim_values]],
-                                             [attn_matrix_name, ['BSZ', self.num_heads, len_queries, len_keys]],
+        self.streams_in_module = {'inputs': [[self.input_name_values, [batch, self.num_heads, len_keys, self.input_dim_values]],
+                                             [attn_matrix_name, [batch, self.num_heads, len_queries, len_keys]],
                                              ],
 
-                                  'outputs': [[self.output_name, ['BSZ', self.num_heads, len_queries, self.input_dim_values]],
+                                  'outputs': [[self.output_name, [batch, self.num_heads, len_queries, self.input_dim_values]],
                                               ]
                                   }
 
         if self.output_name_attn_scores:
-            self.streams_in_module['outputs'].append([self.output_name_attn_scores, ['BSZ', self.num_heads, len_queries, len_keys]])
+            self.streams_in_module['outputs'].append([self.output_name_attn_scores, [batch, self.num_heads, len_queries, len_keys]])
 
     def forward(self, _data):
         if self.use_old_scores:

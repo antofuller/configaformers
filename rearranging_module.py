@@ -27,10 +27,10 @@ class MakeHeads(nn.Module):
         self.head_dim = int(self.input_dim / self.num_heads)
 
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name, ['BSZ', len_input, self.input_dim]],
+        self.streams_in_module = {'inputs': [[self.input_name, [_streams[self.input_name][0], len_input, self.input_dim]],
                                              ],
 
-                                  'outputs': [[self.output_name, ['BSZ', self.num_heads, len_input, self.head_dim]],
+                                  'outputs': [[self.output_name, [_streams[self.input_name][0], self.num_heads, len_input, self.head_dim]],
                                               ]
                                   }
 
@@ -62,10 +62,10 @@ class MergeHeads(nn.Module):
         self.output_dim = int(self.num_heads*self.input_dim)
 
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name, ['BSZ', self.num_heads, len_input, self.input_dim]],
+        self.streams_in_module = {'inputs': [[self.input_name, [_streams[self.input_name][0], self.num_heads, len_input, self.input_dim]],
                                              ],
 
-                                  'outputs': [[self.output_name, ['BSZ', len_input, self.output_dim]],
+                                  'outputs': [[self.output_name, [_streams[self.input_name][0], len_input, self.output_dim]],
                                               ]
                                   }
 
@@ -238,12 +238,13 @@ class PackBatch(nn.Module):
         input_dim = _streams[self.input_name][-1]
         input_length = _streams[self.input_name][-2]
         output_dim = input_dim
+        output_length = int(input_length/self.group_size)
 
         # Prepare streams info
         self.streams_in_module = {'inputs': [[self.input_name, ['BSZ', input_length, input_dim]],
                                              ],
 
-                                  'outputs': [[self.output_name, [f'{self.group_size}BSZ', input_length/self.group_size, output_dim]],
+                                  'outputs': [[self.output_name, [f'{self.group_size}BSZ', output_length, output_dim]],
                                               ]
                                   }
 
