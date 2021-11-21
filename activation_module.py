@@ -75,11 +75,12 @@ class Activation(nn.Module):
         else:
             print(f"activation_function must be a string or a list of strings.")
 
+        batch = _streams[self.input_name][0]
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name, ['BSZ', len_input, self.input_dim]],
+        self.streams_in_module = {'inputs': [[self.input_name, [batch, len_input, self.input_dim]],
                                              ],
 
-                                  'outputs': [[self.output_name, ['BSZ', len_input, self.output_dim]],
+                                  'outputs': [[self.output_name, [batch, len_input, self.output_dim]],
                                               ]
                                   }
 
