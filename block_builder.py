@@ -7,7 +7,7 @@ from norm_module import Norm, ScaleAlongDimension
 from stream_module import MakeStream, MergeStreams, CutStream, CatStreams
 from embedding_module import Embedding
 from rope_module import RoPE
-from rearranging_module import MakeHeads, MergeHeads, ShiftSequence, DownSampleSequence, UpSampleSequence, PackBatch, UnPackBatch
+from rearranging_module import MakeHeads, MergeHeads, ShiftSequence, DownSampleSequence, UpSampleSequence, PackBatch, Batch2Features, UnPackFeatures
 from dropout_module import Dropout
 
 
@@ -70,8 +70,11 @@ def get_module(module_type):
     elif module_type == 'pack_batch':
         return PackBatch
 
-    elif module_type == 'unpack_batch':
-        return UnPackBatch
+    elif module_type == 'batch_2_features':
+        return Batch2Features
+
+    elif module_type == 'unpack_features':
+        return UnPackFeatures
 
     else:
         raise "Layer type does not match any available types."

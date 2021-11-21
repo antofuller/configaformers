@@ -238,13 +238,13 @@ class PackBatch(nn.Module):
         input_dim = _streams[self.input_name][-1]
         input_length = _streams[self.input_name][-2]
         output_dim = input_dim
-        output_length = int(input_length/self.group_size)
+        batch_multiplier = int(input_length/self.group_size)
 
         # Prepare streams info
         self.streams_in_module = {'inputs': [[self.input_name, ['BSZ', input_length, input_dim]],
                                              ],
 
-                                  'outputs': [[self.output_name, [f'{self.group_size}BSZ', output_length, output_dim]],
+                                  'outputs': [[self.output_name, [f'{batch_multiplier}BSZ', self.group_size, output_dim]],
                                               ]
                                   }
 
@@ -253,7 +253,7 @@ class PackBatch(nn.Module):
         return _data
 
 
-class UnPackBatch(nn.Module):
+class Batch2Features(nn.Module):
     def __init__(self,
                  config,
                  _streams,
@@ -267,15 +267,19 @@ class UnPackBatch(nn.Module):
         self.input_name = set_default(_look='input_name', _dict=config, _default='x')
         self.output_name = set_default(_look='output_name', _dict=config, _default='x')
 
-        input_dim = _streams[self.input_name][-1]
-        input_length = _streams[self.input_name][-2]
-        output_dim = input_dim
+        # inputs
+        input_shape = _streams[self.input_name]
+        input_batch = input_shape[0]
+        input_batch_multiplier = int(input_batch.replace('BSZ', ''))
+        input_length = input_shape[1]
+        input_dim = input_shape[-1]
 
-        input_batch_multiplier = int(_streams[self.input_name][0].replace('BSZ', ''))
-        output_length = input_length * input_batch_multiplier
+        # outputs
+        output_length = input_batch_multiplier
+        output_dim = int(input_dim*input_length)
 
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name, [_streams[self.input_name][0], input_length, input_dim]],
+        self.streams_in_module = {'inputs': [[self.input_name, [input_batch, input_length, input_dim]],
                                              ],
 
                                   'outputs': [[self.output_name, [f'BSZ', output_length, output_dim]],
@@ -283,5 +287,41 @@ class UnPackBatch(nn.Module):
                                   }
 
     def forward(self, _data):
-        _data[self.output_name] = rearrange(_data[self.input_name], '(b l) g d -> b (l g) d', b=1)
+        _data[self.output_name] = rearrange(_data[self.input_name], '(new_b b) l d -> new_b b (l d)', new_b=1)
+        return _data
+
+
+class UnPackFeatures(nn.Module):
+    def __init__(self,
+                 config,
+                 _streams,
+                 ):
+        super().__init__()
+        """
+        WORK IN PROGRESS (only works with BSZ=1)
+        UnPack features by rearranging
+        """
+        # Configure input(s) and output(s)
+        self.input_name = set_default(_look='input_name', _dict=config, _default='x')
+        self.output_name = set_default(_look='output_name', _dict=config, _default='x')
+        self.output_dim = set_default(_look='output_dim', _dict=config, _default=64)
+
+        # inputs
+        input_shape = _streams[self.input_name]
+        input_length = input_shape[1]
+        input_dim = input_shape[-1]
+
+        # outputs
+        output_length = int(input_length*input_dim/self.output_dim)
+
+        # Prepare streams info
+        self.streams_in_module = {'inputs': [[self.input_name, [f'BSZ', input_length, input_dim]],
+                                             ],
+
+                                  'outputs': [[self.output_name, [f'BSZ', output_length, self.output_dim]],
+                                              ]
+                                  }
+
+    def forward(self, _data):
+        _data[self.output_name] = rearrange(_data[self.input_name], 'new_b b (l d) -> new_b (b l) d', d=self.output_dim)
         return _data
