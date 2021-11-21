@@ -304,7 +304,7 @@ class UnPackFeatures(nn.Module):
         # Configure input(s) and output(s)
         self.input_name = set_default(_look='input_name', _dict=config, _default='x')
         self.output_name = set_default(_look='output_name', _dict=config, _default='x')
-        self.output_dim = set_default(_look='output_dim', _dict=config, _default=64)
+        self.output_dim = set_default(_look='output_dim', _dict=config, _default=64, _type=int)
 
         # inputs
         input_shape = _streams[self.input_name]
