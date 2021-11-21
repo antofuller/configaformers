@@ -26,12 +26,13 @@ class Dropout(nn.Module):
         assert 1 > config['prob'] >= 0, f'Dropout prob was given {config["prob"]} but should be less than 1, and ' \
                                         f'greater than or equal to 0.'
         self.drop = nn.Dropout(config['prob'])
+        batch = _streams[self.input_name][0]
 
         # Prepare streams info
-        self.streams_in_module = {'inputs': [[self.input_name, ['BSZ', len_input, self.input_dim]],
+        self.streams_in_module = {'inputs': [[self.input_name, [batch, len_input, self.input_dim]],
                                              ],
 
-                                  'outputs': [[self.output_name, ['BSZ', len_input, self.output_dim]],
+                                  'outputs': [[self.output_name, [batch, len_input, self.output_dim]],
                                               ]
                                   }
 
