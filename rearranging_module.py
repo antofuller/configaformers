@@ -218,3 +218,69 @@ class UpSampleSequence(nn.Module):
         _data[self.output_name] = rearrange(_x, 'b l c d -> b (l c) d')
 
         return _data
+
+
+class PackBatch(nn.Module):
+    def __init__(self,
+                 config,
+                 _streams,
+                 ):
+        super().__init__()
+        """
+        WORK IN PROGRESS
+        Pack batch by rearranging
+        """
+        # Configure input(s) and output(s)
+        self.input_name = set_default(_look='input_name', _dict=config, _default='x')
+        self.output_name = set_default(_look='output_name', _dict=config, _default='x')
+        self.group_size = set_default(_look='group_size', _dict=config, _default=10, _type=int)
+
+        input_dim = _streams[self.input_name][-1]
+        input_length = _streams[self.input_name][-2]
+        output_dim = input_dim
+
+        # Prepare streams info
+        self.streams_in_module = {'inputs': [[self.input_name, ['BSZ', input_length, input_dim]],
+                                             ],
+
+                                  'outputs': [[self.output_name, [f'{self.group_size}BSZ', input_length/self.group_size, output_dim]],
+                                              ]
+                                  }
+
+    def forward(self, _data):
+        _data[self.output_name] = rearrange(_data[self.input_name], 'b (l g) d -> (b l) g d', g=self.group_size)
+        return _data
+
+
+class UnPackBatch(nn.Module):
+    def __init__(self,
+                 config,
+                 _streams,
+                 ):
+        super().__init__()
+        """
+        WORK IN PROGRESS (only works with BSZ=1)
+        UnPack batch by rearranging
+        """
+        # Configure input(s) and output(s)
+        self.input_name = set_default(_look='input_name', _dict=config, _default='x')
+        self.output_name = set_default(_look='output_name', _dict=config, _default='x')
+
+        input_dim = _streams[self.input_name][-1]
+        input_length = _streams[self.input_name][-2]
+        output_dim = input_dim
+
+        input_batch_multiplier = int(_streams[self.input_name][0].replace('BSZ', ''))
+        output_length = input_length * input_batch_multiplier
+
+        # Prepare streams info
+        self.streams_in_module = {'inputs': [[self.input_name, [_streams[self.input_name][0], input_length, input_dim]],
+                                             ],
+
+                                  'outputs': [[self.output_name, [f'BSZ', output_length, output_dim]],
+                                              ]
+                                  }
+
+    def forward(self, _data):
+        _data[self.output_name] = rearrange(_data[self.input_name], '(b l) g d -> b (l g) d', b=1)
+        return _data
