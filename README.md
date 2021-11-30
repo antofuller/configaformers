@@ -119,7 +119,8 @@ logits = model(input_data)['logits'].view(bsz, 1024, 50257)
 ```
 
 ## Features on the way...
-1. Create more prebuilt blocks
-2. Improve attention offset helpers
-3. Add more experiments
-4. Experiment with Triton for speed-up
+1. Revamp rearrange module
+2. Product-Key memories
+3. Create more prebuilt blocks
+4. Improve attention offsets and masking
+5. Experiment with Triton for speed-up
